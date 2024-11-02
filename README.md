@@ -1,5 +1,10 @@
 # KKBP Exporter
-KKBP_Exporter V4.30 decompiled. Original plugin by MediaMoots
+KKBP_Exporter V4.30 decompiled. Original plugin by MediaMoots.  
+
+This plugin allows you to export a Koikatsu card as a .pmx model. The exported data can be imported to Blender with the [KKBP Importer](https://github.com/FlailingFog/KK-Blender-Porter-Pack). You can also import the pmx file to Blender with MMD tools and use the png and json files the exporter generates to manually set the character up yourself.
+
+![](https://raw.githubusercontent.com/FlailingFog/flailingfog.github.io/master/assets/images/exportpanel.png)
+
 
 ## Building the KKBP exporter
 
@@ -12,4 +17,10 @@ KKBP_Exporter V4.30 decompiled. Original plugin by MediaMoots
 6. Right click on the KKBP folder in the solution explorer and choose Build
 ![image](https://github.com/user-attachments/assets/2e4c6213-e82b-4637-ae5e-c7d4c62b2ec0)
 7. Built .dll file will be in /KKBP_Exporter/bin/NET35/ or /KKBP_Exporter/bin/NET46/
-8. Place this file in /your_game_folder/bepinex/plugins/ and run the game
+8. Place this file in /your_game_folder/bepinex/plugins/ and run the game. You'll see a new export window in the character creator
+
+
+## More Koikatsu exporters
+* [KKPMX](https://github.com/CazzoPMX/KKPMX)
+* [Koikatsu Pmx Exporter (Reverse Engineered & updated)](https://github.com/Snittern/KoikatsuPmxExporterReverseEngineered)
+* [Grey's mesh exporter for Koikatsu](https://github.com/FlailingFog/KK-Blender-Porter-Pack/tree/9fcef4127ba56b4e8e8718fb546945fc00eaaad9/GME)
