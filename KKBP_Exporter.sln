@@ -3,18 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.35122.118
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KKBP_Exporter", "KKBP_Exporter\KKBP_Exporter.csproj", "{F6264F48-05B4-408D-BF3C-E5B427B8B48B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "KKBP_Exporter", "KKBP_Exporter\KKBP_Exporter.csproj", "{489821B8-BE19-4BB7-9772-3AA08404A7EB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
+		NET35|Any CPU = NET35|Any CPU
+		NET46|Any CPU = NET46|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F6264F48-05B4-408D-BF3C-E5B427B8B48B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F6264F48-05B4-408D-BF3C-E5B427B8B48B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F6264F48-05B4-408D-BF3C-E5B427B8B48B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F6264F48-05B4-408D-BF3C-E5B427B8B48B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{489821B8-BE19-4BB7-9772-3AA08404A7EB}.NET35|Any CPU.ActiveCfg = NET35|Any CPU
+		{489821B8-BE19-4BB7-9772-3AA08404A7EB}.NET35|Any CPU.Build.0 = NET35|Any CPU
+		{489821B8-BE19-4BB7-9772-3AA08404A7EB}.NET46|Any CPU.ActiveCfg = NET46|Any CPU
+		{489821B8-BE19-4BB7-9772-3AA08404A7EB}.NET46|Any CPU.Build.0 = NET46|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

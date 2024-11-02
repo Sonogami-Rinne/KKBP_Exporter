@@ -13,7 +13,7 @@ public class TextureWriter
 	{
 		int width = renderTexture.width;
 		int height = renderTexture.height;
-		Texture2D texture2D = new Texture2D(width, height, TextureFormat.ARGB32, mipChain: false);
+		Texture2D texture2D = new Texture2D(width, height, TextureFormat.ARGB32, false);
 		RenderTexture.active = renderTexture;
 		texture2D.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
 		texture2D.Apply();

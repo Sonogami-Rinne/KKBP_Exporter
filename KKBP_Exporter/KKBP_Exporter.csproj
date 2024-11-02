@@ -2,7 +2,9 @@
   <PropertyGroup>
     <AssemblyName>KKBP_Exporter</AssemblyName>
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
-    <TargetFramework>net46</TargetFramework>
+	  <TargetFramework Condition="'$(Configuration)'=='NET35'">net35</TargetFramework>
+	  <TargetFramework Condition="'$(Configuration)'=='NET46'">net46</TargetFramework>
+	  <Configurations>NET35;NET46</Configurations>
   </PropertyGroup>
   <PropertyGroup>
     <LangVersion>11.0</LangVersion>
@@ -31,9 +33,11 @@
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.ImageConversionModule" Version="2019.4.9" />
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.IMGUIModule" Version="2019.4.9" />
     <PackageReference Include="IllusionLibs.KoikatsuSunshine.UnityEngine.JSONSerializeModule" Version="2019.4.9" />
-    <PackageReference Include="IllusionModdingAPI.KKSAPI" Version="1.41.0" ExcludeAssets="runtime" />
+    
   </ItemGroup>
-  <ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)'=='NET46'">
+	<PackageReference Include="IllusionModdingAPI.KKSAPI" Version="1.41.0" ExcludeAssets="runtime" />
     <Reference Include="KKS_Accessory_States">
       <HintPath>..\deps\KKS_Accessory_States.dll</HintPath>
       <Private>False</Private>
@@ -43,4 +47,16 @@
       <Private>False</Private>
     </Reference>
   </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)'=='NET35'">
+	<PackageReference Include="IllusionModdingAPI.KKAPI" Version="1.41.0" ExcludeAssets="runtime" />
+	<Reference Include="KK_Accessory_States">
+		<HintPath>..\deps\KK_Accessory_States.dll</HintPath>
+		<Private>False</Private>
+	</Reference>
+	<Reference Include="KK_Pushup">
+		<HintPath>..\deps\KK_Pushup.dll</HintPath>
+		<Private>False</Private>
+	</Reference>
+    </ItemGroup>
 </Project>

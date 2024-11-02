@@ -250,9 +250,14 @@ internal class PmxBuilder
 			characterControl.ChangeEyesPtn(23);
 			characterControl.ChangeEyesPtn(32);
 			characterControl.ChangeEyesPtn(0);
-			cvsDrawCtrl.ChangeAnimationForce(makerBase.lstPose.Length - 1, 0f);
-		}
-		else
+#if NET35
+            int index = makerBase.lstPose.FindIndex((Predicate<ExcelData.Param>)(list => list.list[4] == "tpose"));
+            cvsDrawCtrl.ChangeAnimationForce(index, 0.0f);
+#elif NET46
+				cvsDrawCtrl.ChangeAnimationForce(makerBase.lstPose.Length - 1, 0f);
+#endif
+        }
+        else
 		{
 			characterControl.animBody.speed = 0f;
 		}
@@ -930,8 +935,8 @@ internal class PmxBuilder
 				Texture texture = matDraw.GetTexture(text);
 				if (texture == null)
 				{
-					Texture2D texture2D = new Texture2D(1, 1, TextureFormat.ARGB32, mipChain: false);
-					texture2D.SetPixel(0, 0, new Color(1f, 1f, 1f, 1f));
+					Texture2D texture2D = new Texture2D(1, 1, TextureFormat.ARGB32, false);
+                    texture2D.SetPixel(0, 0, new Color(1f, 1f, 1f, 1f));
 					texture2D.Apply();
 					texture = texture2D;
 				}
@@ -974,8 +979,8 @@ internal class PmxBuilder
 					Texture texture = list3[i].GetTexture(text);
 					if (texture == null)
 					{
-						Texture2D texture2D = new Texture2D(1, 1, TextureFormat.ARGB32, mipChain: false);
-						texture2D.SetPixel(0, 0, new Color(1f, 1f, 1f, 1f));
+						Texture2D texture2D = new Texture2D(1, 1, TextureFormat.ARGB32, false);
+                        texture2D.SetPixel(0, 0, new Color(1f, 1f, 1f, 1f));
 						texture2D.Apply();
 						texture = texture2D;
 					}
