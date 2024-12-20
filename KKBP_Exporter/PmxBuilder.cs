@@ -793,8 +793,8 @@ internal class PmxBuilder
 			}
 			Console.WriteLine("Exporting Acc: " + meshRenderer.name);
 			SMRData sMRData = new SMRData(this, meshRenderer);
-			AddToSMRDataList(sMRData);
-			if (currentRendererMaterialMapping.ContainsKey(meshRenderer))
+            AddToSMRDataList(sMRData);
+            if (currentRendererMaterialMapping.ContainsKey(meshRenderer))
 			{
 				Console.WriteLine("Issue - Renderer already added to Material name cache: " + sMRData.SMRName);
 			}
@@ -802,46 +802,56 @@ internal class PmxBuilder
 			{
 				currentRendererMaterialMapping.Add(meshRenderer, sMRData.SMRMaterialNames);
 			}
-			GameObject gameObject = componentsInChildren[i].gameObject;
-			Mesh sharedMesh = componentsInChildren[i].sharedMesh;
-			_ = sharedMesh.boneWeights;
-			Transform transform = componentsInChildren[i].gameObject.transform;
-			int bone = sbi(GetAltBoneName(transform), transform.GetInstanceID().ToString());
+            GameObject gameObject = componentsInChildren[i].gameObject;
+            Mesh sharedMesh = componentsInChildren[i].sharedMesh;
+            _ = sharedMesh.boneWeights;
+            Transform transform = componentsInChildren[i].gameObject.transform;
+            int bone = sbi(GetAltBoneName(transform), transform.GetInstanceID().ToString());
 			UnityEngine.Vector2[] uv = sharedMesh.uv;
 			List<UnityEngine.Vector2[]> list = new List<UnityEngine.Vector2[]> { sharedMesh.uv2, sharedMesh.uv3, sharedMesh.uv4 };
 			UnityEngine.Vector3[] normals = sharedMesh.normals;
 			UnityEngine.Vector3[] vertices = sharedMesh.vertices;
-			for (int j = 0; j < sharedMesh.subMeshCount; j++)
+            for (int j = 0; j < sharedMesh.subMeshCount; j++)
 			{
 				int[] triangles = sharedMesh.GetTriangles(j);
 				AddFaceList(triangles, vertexCount);
 				CreateMaterial(meshRenderer.sharedMaterials[j], sMRData.SMRMaterialNames[j], triangles.Length);
 			}
-			vertexCount += sharedMesh.vertexCount;
-			for (int k = 0; k < sharedMesh.vertexCount; k++)
+            vertexCount += sharedMesh.vertexCount;
+			bool uv_error_flag = false;
+            for (int k = 0; k < sharedMesh.vertexCount; k++)
 			{
-				PmxVertex pmxVertex = new PmxVertex
-				{
-					UV = new PmxLib.Vector2(uv[k].x, (float)((double)(0f - uv[k].y) + 1.0)),
-					Weight = new PmxVertex.BoneWeight[4]
-				};
-				pmxVertex.Weight[0].Bone = bone;
-				pmxVertex.Weight[0].Value = 1f;
-				for (int l = 0; l < list.Count; l++)
-				{
-					if (list[l].Length != 0)
-					{
-						pmxVertex.UVA[l] = new PmxLib.Vector4(list[l][k].x, (float)((double)(0f - list[l][k].y) + 1.0), 0f, 0f);
-					}
+				PmxVertex pmxVertex = new PmxVertex();
+                try {
+					pmxVertex.UV = new PmxLib.Vector2(uv[k].x, (float)((double)(0f - uv[k].y) + 1.0));
+					pmxVertex.Weight = new PmxVertex.BoneWeight[4];
 				}
-				UnityEngine.Vector3 vector = gameObject.transform.TransformDirection(normals[k]);
+				catch {
+					if (uv_error_flag == false)
+					{
+                        Console.WriteLine("Issue - Object did not have a UV map: " + meshRenderer.name);
+                    }
+					uv_error_flag = true;
+                    pmxVertex.UV = new PmxLib.Vector2();
+                    pmxVertex.Weight = new PmxVertex.BoneWeight[4];
+                }
+                pmxVertex.Weight[0].Bone = bone;
+				pmxVertex.Weight[0].Value = 1f;
+					for (int l = 0; l < list.Count; l++)
+					{
+						if (list[l].Length != 0)
+						{
+							pmxVertex.UVA[l] = new PmxLib.Vector4(list[l][k].x, (float)((double)(0f - list[l][k].y) + 1.0), 0f, 0f);
+						}
+					}
+                UnityEngine.Vector3 vector = gameObject.transform.TransformDirection(normals[k]);
 				pmxVertex.Normal = new PmxLib.Vector3(0f - vector.x, vector.y, 0f - vector.z);
 				UnityEngine.Vector3 vector2 = gameObject.transform.TransformPoint(vertices[k]);
-				pmxVertex.Position = new PmxLib.Vector3((0f - vector2.x) * (float)scale, vector2.y * (float)scale, (0f - vector2.z) * (float)scale);
+                pmxVertex.Position = new PmxLib.Vector3((0f - vector2.x) * (float)scale, vector2.y * (float)scale, (0f - vector2.z) * (float)scale);
 				pmxVertex.Deform = PmxVertex.DeformType.BDEF4;
 				pmxFile.VertexList.Add(pmxVertex);
-			}
-		}
+            }
+        }
 	}
 
 	public void CreateBoneList()

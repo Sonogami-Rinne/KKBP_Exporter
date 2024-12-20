@@ -5,7 +5,7 @@ using KK_Plugins;
 using KKAPI.Maker;
 using UnityEngine;
 
-[BepInPlugin("com.bepis.bepinex.kkbpexporter", "KKBP_Exporter", "4.30")]
+[BepInPlugin("com.bepis.bepinex.kkbpexporter", "KKBP_Exporter", "4.31")]
 public class PmxExpoter : BaseUnityPlugin
 {
 	private PmxBuilder builder;
