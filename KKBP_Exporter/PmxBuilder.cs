@@ -112,6 +112,8 @@ internal class PmxBuilder
 
 	private List<SMRData> characterSMRData = new List<SMRData>();
 
+	private List<MaterialDataComplete> materialDataComplete = new List<MaterialDataComplete>();
+
 	private List<TextureData> textureData = new List<TextureData>();
 
 	private List<MaterialData> materialData = new List<MaterialData>();
@@ -251,13 +253,13 @@ internal class PmxBuilder
 			characterControl.ChangeEyesPtn(32);
 			characterControl.ChangeEyesPtn(0);
 #if NET35
-            int index = makerBase.lstPose.FindIndex((Predicate<ExcelData.Param>)(list => list.list[4] == "tpose"));
-            cvsDrawCtrl.ChangeAnimationForce(index, 0.0f);
+			int index = makerBase.lstPose.FindIndex((Predicate<ExcelData.Param>)(list => list.list[4] == "tpose"));
+			cvsDrawCtrl.ChangeAnimationForce(index, 0.0f);
 #elif NET46
 				cvsDrawCtrl.ChangeAnimationForce(makerBase.lstPose.Length - 1, 0f);
 #endif
-        }
-        else
+		}
+		else
 		{
 			characterControl.animBody.speed = 0f;
 		}
@@ -398,6 +400,8 @@ internal class PmxBuilder
 			}
 			SMRData sMRData = new SMRData(this, componentsInChildren[i]);
 			AddToSMRDataList(sMRData);
+			MaterialDataComplete matData = new MaterialDataComplete(this, componentsInChildren[i]);
+			AddToMaterialDataCompleteList(matData);
 			if (currentRendererMaterialMapping.ContainsKey(componentsInChildren[i]))
 			{
 				Console.WriteLine("Issue - Renderer already added to Material name cache: " + sMRData.SMRName);
@@ -793,8 +797,10 @@ internal class PmxBuilder
 			}
 			Console.WriteLine("Exporting Acc: " + meshRenderer.name);
 			SMRData sMRData = new SMRData(this, meshRenderer);
-            AddToSMRDataList(sMRData);
-            if (currentRendererMaterialMapping.ContainsKey(meshRenderer))
+			AddToSMRDataList(sMRData);
+			MaterialDataComplete matData = new MaterialDataComplete(this, meshRenderer);
+			AddToMaterialDataCompleteList(matData);
+			if (currentRendererMaterialMapping.ContainsKey(meshRenderer))
 			{
 				Console.WriteLine("Issue - Renderer already added to Material name cache: " + sMRData.SMRName);
 			}
@@ -802,56 +808,56 @@ internal class PmxBuilder
 			{
 				currentRendererMaterialMapping.Add(meshRenderer, sMRData.SMRMaterialNames);
 			}
-            GameObject gameObject = componentsInChildren[i].gameObject;
-            Mesh sharedMesh = componentsInChildren[i].sharedMesh;
-            _ = sharedMesh.boneWeights;
-            Transform transform = componentsInChildren[i].gameObject.transform;
-            int bone = sbi(GetAltBoneName(transform), transform.GetInstanceID().ToString());
+			GameObject gameObject = componentsInChildren[i].gameObject;
+			Mesh sharedMesh = componentsInChildren[i].sharedMesh;
+			_ = sharedMesh.boneWeights;
+			Transform transform = componentsInChildren[i].gameObject.transform;
+			int bone = sbi(GetAltBoneName(transform), transform.GetInstanceID().ToString());
 			UnityEngine.Vector2[] uv = sharedMesh.uv;
 			List<UnityEngine.Vector2[]> list = new List<UnityEngine.Vector2[]> { sharedMesh.uv2, sharedMesh.uv3, sharedMesh.uv4 };
 			UnityEngine.Vector3[] normals = sharedMesh.normals;
 			UnityEngine.Vector3[] vertices = sharedMesh.vertices;
-            for (int j = 0; j < sharedMesh.subMeshCount; j++)
+			for (int j = 0; j < sharedMesh.subMeshCount; j++)
 			{
 				int[] triangles = sharedMesh.GetTriangles(j);
 				AddFaceList(triangles, vertexCount);
 				CreateMaterial(meshRenderer.sharedMaterials[j], sMRData.SMRMaterialNames[j], triangles.Length);
 			}
-            vertexCount += sharedMesh.vertexCount;
+			vertexCount += sharedMesh.vertexCount;
 			bool uv_error_flag = false;
-            for (int k = 0; k < sharedMesh.vertexCount; k++)
+			for (int k = 0; k < sharedMesh.vertexCount; k++)
 			{
 				PmxVertex pmxVertex = new PmxVertex();
-                try {
+				try {
 					pmxVertex.UV = new PmxLib.Vector2(uv[k].x, (float)((double)(0f - uv[k].y) + 1.0));
 					pmxVertex.Weight = new PmxVertex.BoneWeight[4];
 				}
 				catch {
 					if (uv_error_flag == false)
 					{
-                        Console.WriteLine("Issue - Object did not have a UV map: " + meshRenderer.name);
-                    }
-					uv_error_flag = true;
-                    pmxVertex.UV = new PmxLib.Vector2();
-                    pmxVertex.Weight = new PmxVertex.BoneWeight[4];
-                }
-                pmxVertex.Weight[0].Bone = bone;
-				pmxVertex.Weight[0].Value = 1f;
-					for (int l = 0; l < list.Count; l++)
-					{
-						if (list[l].Length != 0)
-						{
-							pmxVertex.UVA[l] = new PmxLib.Vector4(list[l][k].x, (float)((double)(0f - list[l][k].y) + 1.0), 0f, 0f);
-						}
+						Console.WriteLine("Issue - Object did not have a UV map: " + meshRenderer.name);
 					}
-                UnityEngine.Vector3 vector = gameObject.transform.TransformDirection(normals[k]);
+					uv_error_flag = true;
+					pmxVertex.UV = new PmxLib.Vector2();
+					pmxVertex.Weight = new PmxVertex.BoneWeight[4];
+				}
+				pmxVertex.Weight[0].Bone = bone;
+				pmxVertex.Weight[0].Value = 1f;
+				for (int l = 0; l < list.Count; l++)
+				{
+					if (list[l].Length != 0)
+					{
+						pmxVertex.UVA[l] = new PmxLib.Vector4(list[l][k].x, (float)((double)(0f - list[l][k].y) + 1.0), 0f, 0f);
+					}
+				}
+				UnityEngine.Vector3 vector = gameObject.transform.TransformDirection(normals[k]);
 				pmxVertex.Normal = new PmxLib.Vector3(0f - vector.x, vector.y, 0f - vector.z);
 				UnityEngine.Vector3 vector2 = gameObject.transform.TransformPoint(vertices[k]);
-                pmxVertex.Position = new PmxLib.Vector3((0f - vector2.x) * (float)scale, vector2.y * (float)scale, (0f - vector2.z) * (float)scale);
+				pmxVertex.Position = new PmxLib.Vector3((0f - vector2.x) * (float)scale, vector2.y * (float)scale, (0f - vector2.z) * (float)scale);
 				pmxVertex.Deform = PmxVertex.DeformType.BDEF4;
 				pmxFile.VertexList.Add(pmxVertex);
-            }
-        }
+			}
+		}
 	}
 
 	public void CreateBoneList()
@@ -946,7 +952,7 @@ internal class PmxBuilder
 				if (texture == null)
 				{
 					Texture2D texture2D = new Texture2D(1, 1, TextureFormat.ARGB32, false);
-                    texture2D.SetPixel(0, 0, new Color(1f, 1f, 1f, 1f));
+					texture2D.SetPixel(0, 0, new Color(1f, 1f, 1f, 1f));
 					texture2D.Apply();
 					texture = texture2D;
 				}
@@ -990,7 +996,7 @@ internal class PmxBuilder
 					if (texture == null)
 					{
 						Texture2D texture2D = new Texture2D(1, 1, TextureFormat.ARGB32, false);
-                        texture2D.SetPixel(0, 0, new Color(1f, 1f, 1f, 1f));
+						texture2D.SetPixel(0, 0, new Color(1f, 1f, 1f, 1f));
 						texture2D.Apply();
 						texture = texture2D;
 					}
@@ -1182,15 +1188,41 @@ internal class PmxBuilder
 		ChaControl characterControl = MakerAPI.GetCharacterControl();
 		MaterialData matData = new MaterialData(((CustomTextureCreate)characterControl.customTexCtrlBody).matCreate, "cf_m_body_create");
 		AddToMaterialDataList(matData);
-		MaterialData matData2 = new MaterialData(((CustomTextureCreate)characterControl.customTexCtrlFace).matCreate, "cf_m_face_create");
+		AddCreateBodyMaterialsToComplete(((CustomTextureCreate)characterControl.customTexCtrlBody).matCreate, "cf_m_body");
+
+        MaterialData matData2 = new MaterialData(((CustomTextureCreate)characterControl.customTexCtrlFace).matCreate, "cf_m_face_create");
 		AddToMaterialDataList(matData2);
-		MaterialData matData3 = new MaterialData(characterControl.ctCreateEyeW.matCreate, "cf_m_eyewhite_create");
+		AddCreateBodyMaterialsToComplete(((CustomTextureCreate)characterControl.customTexCtrlFace).matCreate, "cf_m_face_00");
+
+        MaterialData matData3 = new MaterialData(characterControl.ctCreateEyeW.matCreate, "cf_m_eyewhite_create");
 		AddToMaterialDataList(matData3);
+		AddCreateBodyMaterialsToComplete(characterControl.ctCreateEyeW.matCreate, "cf_m_sirome_00");
+
 		MaterialData matData4 = new MaterialData(characterControl.ctCreateEyeL.matCreate, "cf_m_eye_create_L");
 		AddToMaterialDataList(matData4);
-		MaterialData matData5 = new MaterialData(characterControl.ctCreateEyeR.matCreate, "cf_m_eye_create_R");
+		AddCreateBodyMaterialsToComplete(characterControl.ctCreateEyeL.matCreate, "cf_Ohitomi_L02");
+
+        MaterialData matData5 = new MaterialData(characterControl.ctCreateEyeR.matCreate, "cf_m_eye_create_R");
 		AddToMaterialDataList(matData5);
-	}
+		AddCreateBodyMaterialsToComplete(characterControl.ctCreateEyeR.matCreate, "cf_Ohitomi_R02");
+    }
+
+	public void AddCreateBodyMaterialsToComplete(Material mat, String name)
+		{
+			//Loop through the existing MaterialDataComplete material list to find what material to append the create information to
+            MaterialInfo matDataCreate = new MaterialInfo(mat, name);
+            foreach (MaterialDataComplete data in materialDataComplete)
+			{
+				foreach (MaterialInfo infoData in data.MatInfo)
+				{
+                    if (infoData.MaterialName.Contains(matDataCreate.MaterialName))
+					{
+						infoData.ShaderPropNames.AddRange(matDataCreate.ShaderPropNames);
+                        infoData.ShaderPropColorValues.AddRange(matDataCreate.ShaderPropColorValues);
+                    }
+                }
+			}
+		}
 
 	public void GetCreateClothesMaterials()
 	{
@@ -1251,8 +1283,22 @@ internal class PmxBuilder
 				{
 					MaterialData matData = new MaterialData(customTextureCreate.matCreate, "create_" + list[l]);
 					AddToMaterialDataList(matData);
-				}
-			}
+
+                    //Loop through the existing MaterialDataComplete material list to find what material to append the create information to
+                    MaterialInfo matDataCreate = new MaterialInfo(customTextureCreate.matCreate, list[l]);
+                    foreach (MaterialDataComplete data in materialDataComplete)
+					{
+						foreach (MaterialInfo infoData in data.MatInfo)
+						{
+                            if (infoData.MaterialName.Contains(matDataCreate.MaterialName))
+							{
+								infoData.ShaderPropNames.AddRange(matDataCreate.ShaderPropNames);
+                                infoData.ShaderPropColorValues.AddRange(matDataCreate.ShaderPropColorValues);
+                            }
+                        }
+					}
+                }
+            }
 		}
 	}
 
@@ -1311,7 +1357,7 @@ internal class PmxBuilder
 		}
 	}
 
-	public void CreateDynamicBonesData()
+    public void CreateDynamicBonesData()
 	{
 		DynamicBone[] componentsInChildren = GameObject.Find("BodyTop").transform.GetComponentsInChildren<DynamicBone>(includeInactive: true);
 		DynamicBone_Ver01[] componentsInChildren2 = GameObject.Find("BodyTop").transform.GetComponentsInChildren<DynamicBone_Ver01>(includeInactive: true);
@@ -1470,8 +1516,15 @@ internal class PmxBuilder
 			characterSMRData.Add(smrData);
 		}
 	}
+    public void AddToMaterialDataCompleteList(MaterialDataComplete smrData)
+    {
+        if (materialDataComplete.Find((MaterialDataComplete data) => string.CompareOrdinal(smrData.SMRName, data.SMRName) == 0 && string.CompareOrdinal(smrData.SMRPath, data.SMRPath) == 0) == null)
+        {
+            materialDataComplete.Add(smrData);
+        }
+    }
 
-	public void AddToTextureDataList(TextureData texData)
+    public void AddToTextureDataList(TextureData texData)
 	{
 		if (texData.textureName != null && textureData.Find((TextureData data) => string.CompareOrdinal(texData.textureName, data.textureName) == 0) == null)
 		{
@@ -1487,7 +1540,7 @@ internal class PmxBuilder
 		}
 	}
 
-	public void AddToClothesDataList(ClothesData clothData)
+    public void AddToClothesDataList(ClothesData clothData)
 	{
 		clothesData.Add(clothData);
 	}
@@ -1585,6 +1638,45 @@ internal class PmxBuilder
 		}
 		File.WriteAllText(baseSavePath + fileName, text);
 	}
+
+
+
+	public void ExportMatDataCompListToJson(List<MaterialDataComplete> dataList, string fileName)
+    {
+        string text = "";
+		if (dataList.Count() > 0)
+		{
+			foreach (MaterialDataComplete data in dataList)
+			{
+				string text2 = JsonUtility.ToJson(data);
+				string text3 = "";
+
+                //The JsonUtility does not seem to work when you have a class instance as a class variable,
+                //so each MaterialInfo variable in each MaterialDataComplete instance has to be converted separately then appended to the json line
+                foreach (MaterialInfo infoData in data.MatInfo)
+				{
+                    text3 = text3 + JsonUtility.ToJson(infoData);
+                }
+				if (!text3.IsNullOrEmpty())
+				{
+					text3 = text3.Substring(1, text3.Length - 1);
+					text3 = "\"MaterialInformation\":[{" + text3 + "]}";
+					text3 = text3.Replace("}{", "},{"); //add comma between material entries
+                }
+                if (!text2.IsNullOrEmpty())
+                {
+                    text2 = text2.Substring(0, text2.Length - 1) + ",";
+                }
+                text = text + text2 + text3 + ",\n";
+			}
+			if (!text.IsNullOrEmpty())
+			{
+				text = text.Substring(0, text.Length - 2);
+			}
+				text = "[" + text + "]";
+		}
+        File.WriteAllText(baseSavePath + fileName, text);
+    }
 
 	public void ExportDataToJson<T>(T data, string fileName)
 	{
@@ -1694,12 +1786,13 @@ internal class PmxBuilder
 	public void ExportAllDataLists()
 	{
 		ExportDataListToJson(characterSMRData, "KK_SMRData.json");
-		ExportDataListToJson(materialData, "KK_MaterialData.json");
+        ExportMatDataCompListToJson(materialDataComplete, "KK_MaterialDataComplete.json");
+        ExportDataListToJson(materialData, "KK_MaterialData.json");
 		ExportDataListToJson(textureData, "KK_TextureData.json");
 		ExportDataListToJson(clothesData, "KK_ClothesData.json");
 		ExportDataListToJson(accessoryData, "KK_AccessoryData.json");
 		ExportDataListToJson(referenceInfoData, "KK_ReferenceInfoData.json");
-		ExportDataListToJson(dynamicBonesData, "KK_DynamicBoneData.json");
+        ExportDataListToJson(dynamicBonesData, "KK_DynamicBoneData.json");
 		ExportDataListToJson(dynamicBoneCollidersData, "KK_DynamicBoneColliderData.json");
 		ExportDataListToJson(accessoryStateData, "KK_AccessoryStateData.json");
 		ExportDataListToJson(boneOffsetData, "KK_BoneOffsetData.json");

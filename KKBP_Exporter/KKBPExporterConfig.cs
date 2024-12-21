@@ -16,4 +16,6 @@ internal class KKBPExporterConfig
 	public bool exportWithEnabledShapekeys;
 
 	public bool exportCurrentPose;
+
+	public string exporterVersion = "4.32";
 }

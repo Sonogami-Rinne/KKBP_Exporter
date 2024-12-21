@@ -7,8 +7,8 @@ using System.Security.Permissions;
 
 [assembly: AssemblyCompany("KKBP_Exporter")]
 [assembly: AssemblyConfiguration("Release")]
-[assembly: AssemblyFileVersion("4.31.0.0")]
-[assembly: AssemblyInformationalVersion("4.31.0")]
+[assembly: AssemblyFileVersion("4.32.0.0")]
+[assembly: AssemblyInformationalVersion("4.32.0")]
 [assembly: AssemblyProduct("KKBP_Exporter")]
 [assembly: AssemblyTitle("KKBP_Exporter")]
-[assembly: AssemblyVersion("4.31.0.0")]
+[assembly: AssemblyVersion("4.32.0.0")]
