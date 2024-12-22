@@ -7,7 +7,7 @@ internal class KKBPExporterConfig
 
 	public bool exportHitBoxes;
 
-	public bool exportSingleOutfit;
+	public bool exportAllOutfits;
 
 	public bool exportWithoutPhysics;
 
@@ -17,5 +17,5 @@ internal class KKBPExporterConfig
 
 	public bool exportCurrentPose;
 
-	public string exporterVersion = "4.32";
+	public string exporterVersion = PmxExpoter.Version;
 }

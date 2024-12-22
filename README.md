@@ -17,8 +17,9 @@ This plugin allows you to export a Koikatsu card as a .pmx model. The exported d
 6. Right click on the KKBP folder in the solution explorer and choose Build
 ![image](https://github.com/user-attachments/assets/2e4c6213-e82b-4637-ae5e-c7d4c62b2ec0)
 7. Built .dll file will be in /KKBP_Exporter/bin/NET35/ or /KKBP_Exporter/bin/NET46/
-8. Place this file in /your_game_folder/bepinex/plugins/ and run the game. You'll see a new export window in the character creator
-
+8. Place this file in /your_game_folder/bepinex/plugins/ and run the game.
+9. Load the character maker and enable KKBP in the sidebar.  
+![](https://raw.githubusercontent.com/FlailingFog/flailingfog.github.io/master/assets/images/exportpanel2.png)
 
 ## More Koikatsu exporters
 * [KKPMX](https://github.com/CazzoPMX/KKPMX)
