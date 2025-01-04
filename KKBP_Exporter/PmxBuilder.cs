@@ -1322,8 +1322,6 @@ internal class PmxBuilder
 			AddToClothesDataList(clothData);
 
             //force the indoor shoes enum in materialDataComplete to be 999
-            Console.WriteLine(i);
-            Console.WriteLine(clothData.RendNormal01);
             if ((i % 7 == 0) && (i != 0))
             {
                 String indoor_shoe_smr_name = clothData.RendNormal01[0];

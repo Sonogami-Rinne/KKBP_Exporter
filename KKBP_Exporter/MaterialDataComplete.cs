@@ -32,7 +32,7 @@ internal class MaterialDataComplete
                 name = ((!pmxBuilder.ignoreList.Contains(name, StringComparer.Ordinal) || !pmxBuilder.ignoreList.Contains(smr.name, StringComparer.Ordinal)) ? (name + " " + PmxBuilder.GetAltInstanceID(smr.transform.parent.gameObject)) : ((!name.Contains(pmxBuilder.EyeMatName)) ? name : (name + "_" + smr.name)));
                 //name = PmxBuilder.GetAltMaterialName(pmxBuilder, name);
                 MatInfo.Add(new MaterialInfo(smr.materials[i], name));
-                Console.WriteLine("Adding to json SMR: " + name);
+                //Console.WriteLine("Adding to json SMR: " + name);
             }
         }
 
@@ -69,7 +69,7 @@ internal class MaterialDataComplete
             name = ((pmxBuilder.ignoreList.Contains(name, StringComparer.Ordinal) && pmxBuilder.ignoreList.Contains(smr.name, StringComparer.Ordinal)) ? ((!name.Contains(pmxBuilder.EyeMatName)) ? name : (name + "_" + smr.name)) : (name + " " + PmxBuilder.GetAltInstanceID(smr.transform.parent.gameObject)));
             //name = PmxBuilder.GetAltMaterialName(pmxBuilder, name);
             MatInfo.Add(new MaterialInfo(smr.materials[i], name));
-            Console.WriteLine("Adding to json MR: " + name);
+            //Console.WriteLine("Adding to json MR: " + name);
         }
 
         //Get the enum value for this game object
