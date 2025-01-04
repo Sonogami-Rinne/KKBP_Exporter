@@ -1320,12 +1320,28 @@ internal class PmxBuilder
 		{
 			ClothesData clothData = new ClothesData("CusClothesCmp", characterControl.fileStatus.coordinateType, characterControl.cusClothesCmp[i]);
 			AddToClothesDataList(clothData);
-		}
-		for (int j = 0; j < characterControl.cusClothesSubCmp.Length; j++)
+
+            //force the indoor shoes enum in materialDataComplete to be 999
+            Console.WriteLine(i);
+            Console.WriteLine(clothData.RendNormal01);
+            if ((i % 7 == 0) && (i != 0))
+            {
+                String indoor_shoe_smr_name = clothData.RendNormal01[0];
+                //Loop through the existing MaterialDataComplete material list to find what smr object to change the enum of
+                foreach (MaterialDataComplete data in materialDataComplete)
+                {
+                    if (data.SMRName == indoor_shoe_smr_name)
+                    {
+                        data.EnumIndex = 999;
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < characterControl.cusClothesSubCmp.Length; i++)
 		{
-			ClothesData clothData2 = new ClothesData("CusClothesSubCmp", characterControl.fileStatus.coordinateType, characterControl.cusClothesSubCmp[j]);
+			ClothesData clothData2 = new ClothesData("CusClothesSubCmp", characterControl.fileStatus.coordinateType, characterControl.cusClothesSubCmp[i]);
 			AddToClothesDataList(clothData2);
-		}
+        }
 	}
 
 	public void CreateAccessoryData()

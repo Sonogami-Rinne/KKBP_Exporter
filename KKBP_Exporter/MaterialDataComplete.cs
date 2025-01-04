@@ -46,7 +46,7 @@ internal class MaterialDataComplete
             {
                 GameObjectPath = PmxBuilder.GetGameObjectPath(gameObject);
             }
-            if (GameObjectPath == SMRPath)
+            if (SMRPath.Contains(GameObjectPath) && GameObjectPath != "")
             {
                 EnumIndex = value;
             }

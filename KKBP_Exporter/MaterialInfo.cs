@@ -9,10 +9,10 @@ internal class MaterialInfo
 {
 	public string MaterialName;
 	public string ShaderName;
-
-	public List<string> ShaderPropNames = new List<string>();
-	public List<Color> ShaderPropColorValues = new List<Color>();
     public bool isHair = false;
+
+    public List<string> ShaderPropNames = new List<string>();
+	public List<Color> ShaderPropColorValues = new List<Color>();
 
     public MaterialInfo(Material material, string _materialName)
 	{
