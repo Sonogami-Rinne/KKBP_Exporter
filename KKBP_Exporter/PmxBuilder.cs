@@ -1318,26 +1318,32 @@ internal class PmxBuilder
 		ChaControl characterControl = MakerAPI.GetCharacterControl();
 		for (int i = 0; i < characterControl.cusClothesCmp.Length; i++)
 		{
-			ClothesData clothData = new ClothesData("CusClothesCmp", characterControl.fileStatus.coordinateType, characterControl.cusClothesCmp[i]);
+            ClothesData clothData = new ClothesData("CusClothesCmp", characterControl.fileStatus.coordinateType, characterControl.cusClothesCmp[i]);
 			AddToClothesDataList(clothData);
 
             //force the indoor shoes enum in materialDataComplete to be 999
-            if ((i % 7 == 0) && (i != 0))
-            {
-                String indoor_shoe_smr_name = clothData.RendNormal01[0];
-                //Loop through the existing MaterialDataComplete material list to find what smr object to change the enum of
-                foreach (MaterialDataComplete data in materialDataComplete)
-                {
-                    if (data.SMRName == indoor_shoe_smr_name)
-                    {
-                        data.EnumIndex = 999;
-                    }
-                }
-            }
+			try
+            {if ((i % 7 == 0) && (i != 0))
+				{
+					String indoor_shoe_smr_name = clothData.RendNormal01[0];
+					//Loop through the existing MaterialDataComplete material list to find what smr object to change the enum of
+					foreach (MaterialDataComplete data in materialDataComplete)
+					{
+						if (data.SMRName == indoor_shoe_smr_name)
+						{
+							data.EnumIndex = 999;
+						}
+					}
+				}
+			}
+			//whatever
+			catch {
+                Console.WriteLine("Issue with detecting indoor shoes");
+            };
         }
         for (int i = 0; i < characterControl.cusClothesSubCmp.Length; i++)
 		{
-			ClothesData clothData2 = new ClothesData("CusClothesSubCmp", characterControl.fileStatus.coordinateType, characterControl.cusClothesSubCmp[i]);
+            ClothesData clothData2 = new ClothesData("CusClothesSubCmp", characterControl.fileStatus.coordinateType, characterControl.cusClothesSubCmp[i]);
 			AddToClothesDataList(clothData2);
         }
 	}
