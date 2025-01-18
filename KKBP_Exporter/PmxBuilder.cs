@@ -1188,7 +1188,8 @@ internal class PmxBuilder
 		ChaControl characterControl = MakerAPI.GetCharacterControl();
 		MaterialData matData = new MaterialData(((CustomTextureCreate)characterControl.customTexCtrlBody).matCreate, "cf_m_body_create");
 		AddToMaterialDataList(matData);
-		AddCreateBodyMaterialsToComplete(((CustomTextureCreate)characterControl.customTexCtrlBody).matCreate, "cf_m_body");
+		// The body material name changes with the gender, so change the material name or some colors won't be available in the Complete json
+		AddCreateBodyMaterialsToComplete(((CustomTextureCreate)characterControl.customTexCtrlBody).matCreate, characterControl.sex == 0 ? "cm_m_body" : "cf_m_body"); 
 
         MaterialData matData2 = new MaterialData(((CustomTextureCreate)characterControl.customTexCtrlFace).matCreate, "cf_m_face_create");
 		AddToMaterialDataList(matData2);

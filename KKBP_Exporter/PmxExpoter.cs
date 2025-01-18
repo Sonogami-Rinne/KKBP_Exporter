@@ -16,7 +16,7 @@ public class PmxExpoter : BaseUnityPlugin
 	public ConfigEntry<bool> visibilityPref;
 
     public const string GUID = "kkbp.kkbpexporter";
-    public const string Version = "4.34";
+    public const string Version = "4.35";
 	public static PmxExpoter Instance;
 
     private void Awake()
