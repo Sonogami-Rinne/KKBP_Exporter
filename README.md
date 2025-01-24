@@ -13,7 +13,7 @@ This plugin allows you to export a Koikatsu card as a .pmx model. The exported d
 3. Install .net 4.6 targeting pack under the "Individual components" tab
 4. Install .net 3.5 tools under the "Individual components" tab
 5. Open the KKBP_Exporter.sln
-6. Select Build Configuration at the top. Use NET35 to build for Koikatsu. Use NET46 to build for Koikatsu Sunshine
+6. Select Build Configuration at the top. Use NET35 to build for Koikatsu. Use NET46 to build for Koikatsu Sunshine  
  ![image](https://github.com/user-attachments/assets/8eb2726a-8df4-466e-90dc-6f0da47c2409)
 7. Right click on the KKBP folder in the solution explorer and choose Build
 ![image](https://github.com/user-attachments/assets/2e4c6213-e82b-4637-ae5e-c7d4c62b2ec0)
