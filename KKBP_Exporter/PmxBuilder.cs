@@ -204,8 +204,15 @@ internal class PmxBuilder
 				CreateAccessoryData();
 				CreateChaFileCoordinateData();
 				CreateReferenceInfoData();
-				CreateDynamicBonesData();
-				CreateDynamicBoneCollidersData();
+				try
+				{
+                    CreateDynamicBonesData();
+                    CreateDynamicBoneCollidersData();
+                }
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex);
+				}
 				CreateAccessoryStateData();
 				CreateListInfoData();
 				SaveBodyTextures();
@@ -221,7 +228,7 @@ internal class PmxBuilder
 		}
 		catch (Exception ex)
 		{
-			Console.WriteLine(ex);
+			Console.WriteLine(ex.StackTrace);
 			msg = msg + ex?.ToString() + "\n";
 		}
 		yield return null;
