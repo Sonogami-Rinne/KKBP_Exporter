@@ -29,7 +29,17 @@ internal class PmxBuilder
 
 	public string msg = "";
 
-	public HashSet<string> ignoreList = new HashSet<string>
+	public static readonly string[] cf_headshapename = new string[]
+    {
+        "顔全体横幅", "顔上部前後", "顔上部上下", "顔上部サイズ", "顔下部前後", "顔下部横幅", "顎下部上下", "顎下部奥行", "顎上下", "顎幅",
+        "顎前後", "顎先上下", "顎先前後", "顎先幅", "頬骨幅", "頬骨前後", "頬幅", "頬前後", "頬上下", "眉毛上下",
+        "眉毛横位置", "眉毛角度Z軸", "眉毛内側形状", "眉毛外側形状", "上まぶた形状１", "上まぶた形状２", "上まぶた形状３", "下まぶた形状１", "下まぶた形状２", "下まぶた形状３",
+        "目上下", "目横位置", "目前後", "目の角度", "目の縦幅", "目の横幅", "目頭左右位置", "目尻上下位置", "鼻先高さ", "鼻上下",
+        "鼻筋高さ", "口上下", "口横幅", "口前後", "口形状上", "口形状下", "口形状口角", "耳サイズ", "耳角度Y軸", "耳角度Z軸",
+        "耳上部形状", "耳下部形状"
+    };
+
+    public HashSet<string> ignoreList = new HashSet<string>
 	{
 		"Bonelyfans", "c_m_shadowcast", "Standard", "cf_m_body", "cf_m_face_00", "cf_m_tooth", "cf_m_canine", "cf_m_mayuge_00", "cf_m_noseline_00", "cf_m_eyeline_00_up",
 		"cf_m_eyeline_kage", "cf_m_eyeline_down", "cf_m_sirome_00", "cf_m_hitomi_00", "cf_m_tang", "cf_m_namida_00", "cf_m_gageye_00", "cf_m_gageye_01", "cf_m_gageye_02", "o_hit_armL_M",
@@ -558,11 +568,13 @@ internal class PmxBuilder
 	private void CreateMorph()
 	{
 		ChaControl instance = Singleton<ChaControl>.Instance;
-		FBSTargetInfo[] fBSTarget = instance.eyesCtrl.FBSTarget;
-		for (int i = 0; i < fBSTarget.Length; i++)
+        FBSTargetInfo[] fBSTarget = instance.eyesCtrl.FBSTarget;
+
+		var _eyeScale = Math.Max(instance.fileFace.shapeValueFace[34], 1.0f); //cf_headshapename["目の縦幅"]
+        for (int i = 0; i < fBSTarget.Length; i++)
 		{
 			SkinnedMeshRenderer skinnedMeshRenderer = fBSTarget[i].GetSkinnedMeshRenderer();
-			string name = skinnedMeshRenderer.sharedMaterial.name;
+            string name = skinnedMeshRenderer.sharedMaterial.name;
 			int blendShapeCount = skinnedMeshRenderer.sharedMesh.blendShapeCount;
 			UnityEngine.Vector3[] array = new UnityEngine.Vector3[skinnedMeshRenderer.sharedMesh.vertices.Length];
 			UnityEngine.Vector3[] deltaNormals = new UnityEngine.Vector3[skinnedMeshRenderer.sharedMesh.normals.Length];
@@ -589,7 +601,7 @@ internal class PmxBuilder
 				for (int l = 0; l < array.Length; l++)
 				{
 					PmxVertexMorph pmxVertexMorph = new PmxVertexMorph(num + l, new PmxLib.Vector3(0f - array[l].x, array[l].y, 0f - array[l].z));
-					pmxVertexMorph.Offset *= (float)scale;
+					pmxVertexMorph.Offset *= (float)_eyeScale;
 					pmxMorph.OffsetList.Add(pmxVertexMorph);
 				}
 				bool flag = true;
