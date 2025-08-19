@@ -265,15 +265,17 @@ internal class PmxBuilder
 		}
 	}
 
-	public void CreateBaseSavePath()
-	{
-		string arg = Singleton<CustomBase>.Instance.chaCtrl.chaFile.parameter.fullname.Replace(" ", string.Empty);
-		string arg2 = "Export_PMX";
-		baseSavePath = Path.Combine(Application.dataPath, $"../{arg2}/{DateTime.Now:yyyyMMddHHmmss}_{arg}/");
-		Directory.CreateDirectory(baseSavePath);
-	}
+    public void CreateBaseSavePath()
+    {
+        //Use the card's name in the save path, but remove any invalid characters to prevent save issues
+        string characterName = Singleton<CustomBase>.Instance.chaCtrl.chaFile.parameter.fullname.Replace(" ", string.Empty);
+        characterName = string.Join("_", characterName.Split(Path.GetInvalidFileNameChars()));
+        string exportFolder = "Export_PMX";
+        baseSavePath = Path.Combine(Application.dataPath, $"../{exportFolder}/{DateTime.Now:yyyyMMddHHmmss}_{characterName}/");
+        Directory.CreateDirectory(baseSavePath);
+    }
 
-	private void ResetPmxBuilder()
+    private void ResetPmxBuilder()
 	{
 		currentMaterialList.Clear();
 		currentRendererMaterialMapping.Clear();
