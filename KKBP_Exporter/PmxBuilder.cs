@@ -39,6 +39,15 @@ internal class PmxBuilder
         "耳上部形状", "耳下部形状"
     };
 
+    public static readonly string[] cf_bodyshapename = new string[]
+	{
+        "身長", "頭サイズ", "首周り幅", "首周り奥", "胸サイズ", "胸上下位置", "胸の左右開き", "胸の左右位置", "胸上下角度", "胸の尖り",
+        "胸形状", "乳輪の膨らみ", "乳首太さ", "乳首立ち", "胴体肩周り幅", "胴体肩周り奥", "胴体上幅", "胴体上奥", "胴体下幅", "胴体下奥",
+        "ウエスト位置", "腹部", "腰上幅", "腰上奥", "腰下幅", "腰下奥", "尻", "尻角度", "太もも上幅", "太もも上奥",
+        "太もも下幅", "太もも下奥", "膝下幅", "膝下奥", "ふくらはぎ", "足首幅", "足首奥", "肩幅", "肩奥", "上腕幅",
+        "上腕奥", "肘周り幅", "肘周り奥", "前腕"
+	};
+
     public HashSet<string> ignoreList = new HashSet<string>
 	{
 		"Bonelyfans", "c_m_shadowcast", "Standard", "cf_m_body", "cf_m_face_00", "cf_m_tooth", "cf_m_canine", "cf_m_mayuge_00", "cf_m_noseline_00", "cf_m_eyeline_00_up",
@@ -168,6 +177,8 @@ internal class PmxBuilder
 
 	private Dictionary<string, int> currentBoneKeysList = new Dictionary<string, int>();
 
+	public List<BoneRotation> boneRotations = new List<BoneRotation>();
+
 	public string BuildStart()
 	{
 		try
@@ -204,6 +215,7 @@ internal class PmxBuilder
 			{
 				CreateMorph();
 				ExportGagEyes();
+				CollectMorphInfo();
 			}
 			AddAccessory();
 			ExportSpecialTextures();
@@ -570,7 +582,14 @@ internal class PmxBuilder
 		ChaControl instance = Singleton<ChaControl>.Instance;
         FBSTargetInfo[] fBSTarget = instance.eyesCtrl.FBSTarget;
 
-		var _eyeScale = Math.Max(instance.fileFace.shapeValueFace[34], 1.0f); //cf_headshapename["目の縦幅"]
+		Console.WriteLine(instance.eyesCtrl.correctOpenMax);
+
+		var _eyeScale = instance.fileFace.shapeValueFace[34];//cf_headshapename["目の縦幅"]
+        if (_eyeScale > 1.0f)
+		{
+			_eyeScale *= instance.eyesCtrl.correctOpenMax;
+        }
+		//var _eyeScale = Math.Max(instance.fileFace.shapeValueFace[34], 1.0f) * instance.eyesCtrl.correctOpenMax; 
         for (int i = 0; i < fBSTarget.Length; i++)
 		{
 			SkinnedMeshRenderer skinnedMeshRenderer = fBSTarget[i].GetSkinnedMeshRenderer();
@@ -716,6 +735,24 @@ internal class PmxBuilder
 		}
 	}
 
+	private void CollectMorphInfo()
+	{
+        ChaControl instance = Singleton<ChaControl>.Instance;
+		List<MorphInfo> morphs = new List<MorphInfo>();
+		var datas = instance.fileFace.shapeValueFace;
+        for (int i = 0; i < datas.Length; i++)
+		{
+			morphs.Add(new MorphInfo(cf_headshapename[i], datas[i]));
+		}
+		datas = instance.fileBody.shapeValueBody;
+		for(int i = 0; i < datas.Length; i++)
+		{
+			morphs.Add(new MorphInfo(cf_bodyshapename[i], datas[i]));
+		}
+		ExportDataListToJson(morphs, "KK_MorphInfo.json");
+
+    }
+	
 	public void CreateMaterial(Material material, string matName, int count)
 	{
 		PmxMaterial pmxMaterial = new PmxMaterial
@@ -940,6 +977,9 @@ internal class PmxBuilder
 			pmxFile.BoneBackupData.Add(text, new Pmx.BackupBoneData(pmxBone2.Name, componentsInChildren[i].GetInstanceID(), pmxBone2));
 			currentBoneKeysList.Add(text, currentBoneKeysList.Count);
 			currentBonesList.Add(pmxBone2.Name);
+
+			var rotation = componentsInChildren[i].transform.localRotation;
+			boneRotations.Add(new BoneRotation(pmxBone2.Name, 2f * Mathf.Atan2(rotation.y, rotation.w)));
 		}
 	}
 
@@ -1838,7 +1878,8 @@ internal class PmxBuilder
 		ExportDataListToJson(boneOffsetData, "KK_BoneOffsetData.json");
 		ExportDataListToJson(listInfoData, "KK_ListInfoData.json");
 		ExportChaFileCoordinateDataListToJson(chaFileCoordinateData, "KK_ChaFileCoordinateData.json");
-	}
+        ExportDataListToJson(boneRotations, "KK_BoneRotation.json");
+    }
 
 	public void OpenFolderInExplorer(string filename)
 	{
