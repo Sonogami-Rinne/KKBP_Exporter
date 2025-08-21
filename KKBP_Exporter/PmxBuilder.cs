@@ -587,58 +587,65 @@ internal class PmxBuilder
 		Console.WriteLine(instance.eyesCtrl.correctOpenMax);
 
 		var _eyeScale = instance.fileFace.shapeValueFace[34];//cf_headshapename["Ä¿¤Î¿k·ù"]
+		Console.WriteLine(instance.eyesCtrl.OpenMin);
+		Console.WriteLine(instance.eyesCtrl.FixedRate);
+		Console.WriteLine(instance.eyesCtrl.openRate);
         if (_eyeScale > 1.0f)
 		{
 			_eyeScale *= instance.eyesCtrl.correctOpenMax;
         }
-		//var _eyeScale = Math.Max(instance.fileFace.shapeValueFace[34], 1.0f) * instance.eyesCtrl.correctOpenMax; 
-        for (int i = 0; i < fBSTarget.Length; i++)
+		else
 		{
-			SkinnedMeshRenderer skinnedMeshRenderer = fBSTarget[i].GetSkinnedMeshRenderer();
-            string name = skinnedMeshRenderer.sharedMaterial.name;
-			int blendShapeCount = skinnedMeshRenderer.sharedMesh.blendShapeCount;
-			UnityEngine.Vector3[] array = new UnityEngine.Vector3[skinnedMeshRenderer.sharedMesh.vertices.Length];
-			UnityEngine.Vector3[] deltaNormals = new UnityEngine.Vector3[skinnedMeshRenderer.sharedMesh.normals.Length];
-			UnityEngine.Vector3[] deltaTangents = new UnityEngine.Vector3[skinnedMeshRenderer.sharedMesh.tangents.Length];
-			int num = 0;
-			for (int j = 0; j < vertics_num.Length && (vertics_num[j] != array.Length || vertics_name[j] != name); j++)
+			_eyeScale = 1.0f;
+		}
+			//var _eyeScale = Math.Max(instance.fileFace.shapeValueFace[34], 1.0f) * instance.eyesCtrl.correctOpenMax; 
+			for (int i = 0; i < fBSTarget.Length; i++)
 			{
-				num += vertics_num[j];
-			}
-			if (num >= pmxFile.VertexList.Count)
-			{
-				continue;
-			}
-			for (int k = 0; k < blendShapeCount; k++)
-			{
-				skinnedMeshRenderer.sharedMesh.GetBlendShapeFrameVertices(k, 0, array, deltaNormals, deltaTangents);
-				PmxMorph pmxMorph = new PmxMorph
+				SkinnedMeshRenderer skinnedMeshRenderer = fBSTarget[i].GetSkinnedMeshRenderer();
+				string name = skinnedMeshRenderer.sharedMaterial.name;
+				int blendShapeCount = skinnedMeshRenderer.sharedMesh.blendShapeCount;
+				UnityEngine.Vector3[] array = new UnityEngine.Vector3[skinnedMeshRenderer.sharedMesh.vertices.Length];
+				UnityEngine.Vector3[] deltaNormals = new UnityEngine.Vector3[skinnedMeshRenderer.sharedMesh.normals.Length];
+				UnityEngine.Vector3[] deltaTangents = new UnityEngine.Vector3[skinnedMeshRenderer.sharedMesh.tangents.Length];
+				int num = 0;
+				for (int j = 0; j < vertics_num.Length && (vertics_num[j] != array.Length || vertics_name[j] != name); j++)
 				{
-					Name = skinnedMeshRenderer.sharedMesh.GetBlendShapeName(k),
-					NameE = "",
-					Panel = 1,
-					Kind = PmxMorph.OffsetKind.Vertex
-				};
-				for (int l = 0; l < array.Length; l++)
-				{
-					PmxVertexMorph pmxVertexMorph = new PmxVertexMorph(num + l, new PmxLib.Vector3(0f - array[l].x, array[l].y, 0f - array[l].z));
-					pmxVertexMorph.Offset *= (float)_eyeScale;
-					pmxMorph.OffsetList.Add(pmxVertexMorph);
+					num += vertics_num[j];
 				}
-				bool flag = true;
-				for (int m = 0; m < pmxFile.MorphList.Count; m++)
+				if (num >= pmxFile.VertexList.Count)
 				{
-					if (pmxFile.MorphList[m].Name.Equals(pmxMorph.Name))
+					continue;
+				}
+				for (int k = 0; k < blendShapeCount; k++)
+				{
+					skinnedMeshRenderer.sharedMesh.GetBlendShapeFrameVertices(k, 0, array, deltaNormals, deltaTangents);
+					PmxMorph pmxMorph = new PmxMorph
 					{
-						flag = false;
+						Name = skinnedMeshRenderer.sharedMesh.GetBlendShapeName(k),
+						NameE = "",
+						Panel = 1,
+						Kind = PmxMorph.OffsetKind.Vertex
+					};
+					for (int l = 0; l < array.Length; l++)
+					{
+						PmxVertexMorph pmxVertexMorph = new PmxVertexMorph(num + l, new PmxLib.Vector3(0f - array[l].x, array[l].y, 0f - array[l].z));
+						pmxVertexMorph.Offset *= (float)_eyeScale;
+						pmxMorph.OffsetList.Add(pmxVertexMorph);
+					}
+					bool flag = true;
+					for (int m = 0; m < pmxFile.MorphList.Count; m++)
+					{
+						if (pmxFile.MorphList[m].Name.Equals(pmxMorph.Name))
+						{
+							flag = false;
+						}
+					}
+					if (flag)
+					{
+						pmxFile.MorphList.Add(pmxMorph);
 					}
 				}
-				if (flag)
-				{
-					pmxFile.MorphList.Add(pmxMorph);
-				}
 			}
-		}
 		fBSTarget = instance.mouthCtrl.FBSTarget;
 		for (int i = 0; i < fBSTarget.Length; i++)
 		{
