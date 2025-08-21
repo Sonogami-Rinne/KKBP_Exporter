@@ -584,12 +584,7 @@ internal class PmxBuilder
 		ChaControl instance = Singleton<ChaControl>.Instance;
         FBSTargetInfo[] fBSTarget = instance.eyesCtrl.FBSTarget;
 
-		Console.WriteLine(instance.eyesCtrl.correctOpenMax);
-
 		var _eyeScale = instance.fileFace.shapeValueFace[34];//cf_headshapename["Ä¿¤Î¿k·ù"]
-		Console.WriteLine(instance.eyesCtrl.OpenMin);
-		Console.WriteLine(instance.eyesCtrl.FixedRate);
-		Console.WriteLine(instance.eyesCtrl.openRate);
         if (_eyeScale > 1.0f)
 		{
 			_eyeScale *= instance.eyesCtrl.correctOpenMax;
