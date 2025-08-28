@@ -475,7 +475,6 @@ internal class PmxBuilder
 	{
 		SkinnedMeshRenderer[] componentsInChildren = GameObject.Find("BodyTop").transform.GetComponentsInChildren<SkinnedMeshRenderer>();
 		Dictionary<String, int> record = new Dictionary<String, int>();
-		var camera = Camera.main;
 		for (int i = 0; i < componentsInChildren.Length; i++)
 		{
 			foreach (Material mat in componentsInChildren[i].materials)
@@ -572,15 +571,6 @@ internal class PmxBuilder
 						Graphics.Blit(mainTex, renderTexture, mat);
 						//TextureWriter.SaveTex(renderTexture, baseSavePath + "test_" + matName + ".png");
 						PmxBuilder.saveTexture(renderTexture, baseSavePath + "test_" + matName + ".png");
-
-						var cmd = new CommandBuffer();
-						cmd.name = "Capture Mesh Output";
-						cmd.SetRenderTarget(renderTexture);
-						cmd.ClearRenderTarget(true, true, Color.clear);
-						cmd.DrawRenderer(componentsInChildren[i], mat);
-
-						camera.AddCommandBuffer(CameraEvent.AfterEverything, cmd);
-
 
 						renderTexture.Release();
 
