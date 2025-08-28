@@ -162,6 +162,7 @@ public class PmxExpoter : BaseUnityPlugin
 			chaControl.animBody.speed = 1f;
 		}
 		builder.ExportAllDataLists();
+		//builder.testResetModel();
 		builder.OpenFolderInExplorer(builder.baseSavePath);
 		builder = null;
 		Console.WriteLine("KKBP Exporter finished in: " + (DateTime.Now - startDateTime).TotalSeconds + " seconds");

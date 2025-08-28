@@ -23,4 +23,10 @@ internal class CharacterInfoData
 	public List<float> ShapeInfoFace = new List<float>();
 
 	public List<float> ShapeInfoBody = new List<float>();
+
+	public float eyeOpenMax;
+
+	public float eyebrowOpenMax;
+
+	public float mouthOpenMax;
 }
