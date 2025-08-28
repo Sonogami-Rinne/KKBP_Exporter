@@ -15,6 +15,7 @@ using System.Reflection;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking.Types;
+using UnityEngine.Rendering;
 
 internal class PmxBuilder
 {
@@ -164,8 +165,6 @@ internal class PmxBuilder
 
 	private List<BoneInfo> finalBoneInfo = new List<BoneInfo>();
 
-	//private List<Material> collectedMaterials = new List<Material>();
-
 	//private bool ifBoneInfoExported = true;
 
 	public string BuildStart()
@@ -205,7 +204,7 @@ internal class PmxBuilder
 			testCreateMesh();
 			//CreateMeshList();
             //testExportLightTexture();
-            if (nowCoordinate == maxCoord)
+			if (nowCoordinate == maxCoord)
 			{
                 CreateMorph();
 				ExportGagEyes();
@@ -251,9 +250,12 @@ internal class PmxBuilder
 
 	public void testCreateBoneList()
 	{
+        //This function is basically the same as the original one. For easier review, I¡¯ll mark the changes I made.
         offsetBoneCandidates.Clear();
         currentBonesList.Clear();
+		// //
         List<BoneInfo> editBoneInfo = new List<BoneInfo>();
+		// //
 
         Transform transform = GameObject.Find("BodyTop").transform;
         Dictionary<Transform, int> dictionary = new Dictionary<Transform, int>();
@@ -312,23 +314,25 @@ internal class PmxBuilder
             pmxFile.BoneBackupData.Add(text, new Pmx.BackupBoneData(pmxBone2.Name, componentsInChildren[i].GetInstanceID(), pmxBone2));
             currentBoneKeysList.Add(text, currentBoneKeysList.Count);
             currentBonesList.Add(pmxBone2.Name);
-
+			// //
 			editBoneInfo.Add(new BoneInfo(pmxBone2.Name, componentsInChildren[i]));
+			// //
         }
-
+		// //
 		foreach(BoneInfo boneInfo in finalBoneInfo)
 		{
-			boneInfo.rename(GetAltBoneName(boneInfo.targetTransform));
+			boneInfo.rename(GetAltBoneName(boneInfo.targetTransform)); // Update the bone name to match the exported data
 		}
 
         ExportDataListToJson(editBoneInfo, "KK_EditBoneInfo_" + nowCoordinate + ".json");
 		ExportDataListToJson(finalBoneInfo, "KK_FinalBoneInfo_" + nowCoordinate + ".json");
+		// //
     }
 
 	public void testCreateMesh()
 	{
-		//collectedMaterials.Clear();
-        string[] source = new string[0];
+        //This function is basically the same as the original one. For easier review, I¡¯ll mark the changes I made.
+		string[] source = new string[0];
         string[] source2 = new string[7] { "cf_O_namida_L", "cf_O_namida_M", "cf_O_namida_S", "cf_O_gag_eye_00", "cf_O_gag_eye_01", "cf_O_gag_eye_02", "o_tang" };
         string[] source3 = new string[8] { "o_mnpa", "o_mnpb", "n_tang", "n_tang_silhouette", "o_dankon", "o_gomu", "o_dan_f", "cf_O_canine" };
         string[] source4 = new string[23]
@@ -344,7 +348,7 @@ internal class PmxBuilder
             {
                 continue;
             }
-            //collectedMaterials.AddRange(componentsInChildren[i].materials);
+			//collectedMaterials.AddRange(componentsInChildren[i].materials);
 
             Console.WriteLine("Exporting: " + componentsInChildren[i].name);
             if (componentsInChildren[i].sharedMaterials.Count() == 0)
@@ -428,10 +432,10 @@ internal class PmxBuilder
                 }
                 UnityEngine.Vector3 vector = componentsInChildren[i].transform.TransformDirection(normals[l]);
                 pmxVertex.Normal = new PmxLib.Vector3(0f - vector.x, vector.y, 0f - vector.z);
-
+				// //
                 //UnityEngine.Vector3 vector2 = componentsInChildren[i].transform.TransformPointUnscaled(vertices[l]);// ?
                 UnityEngine.Vector3 vector2 = componentsInChildren[i].transform.TransformPoint(vertices[l]);
-
+				// //
                 pmxVertex.Position = new PmxLib.Vector3((0f - vector2.x) * (float)scale, vector2.y * (float)scale, (0f - vector2.z) * (float)scale);
                 pmxVertex.Deform = PmxVertex.DeformType.BDEF4;
                 pmxFile.VertexList.Add(pmxVertex);
@@ -454,7 +458,7 @@ internal class PmxBuilder
 			component.SetLocalScale(1, 1, 1);
         }
     }
-	// Seem to be no effect
+	// Seem to be no effect, even though I try to update the reference of bone in final cycle
     public void testResetModel()
 	{
         foreach (BoneInfo item in finalBoneInfo)
@@ -464,6 +468,235 @@ internal class PmxBuilder
         finalBoneInfo.Clear();
     }
 
+	// If we could get the light texture by in game rendering (after setting shadow color's alpha to 0 and so on, render the material to a png, then we got the light texture), then we could simply set light texture and dark texture in blender
+	// And texture error will be solved, we do not have to create blender shader to match each shader in game
+	// But code below do not work with some shaders and get a transparent image.
+	public void testExportLightTexture()
+	{
+		SkinnedMeshRenderer[] componentsInChildren = GameObject.Find("BodyTop").transform.GetComponentsInChildren<SkinnedMeshRenderer>();
+		Dictionary<String, int> record = new Dictionary<String, int>();
+		var camera = Camera.main;
+		for (int i = 0; i < componentsInChildren.Length; i++)
+		{
+			foreach (Material mat in componentsInChildren[i].materials)
+			{
+				if (!record.ContainsKey(mat.name))
+				{
+					record.Add(mat.name, 0);
+					try
+					{
+						string matName = mat.name.Replace(" (Instance)", "");
+
+						bool hShadowColor = mat.HasProperty("_ShadowColor");
+						bool hOverTex1 = mat.HasProperty("_overtex1");
+						bool hOverTex2 = mat.HasProperty("_overtex2");
+						bool hOverTex3 = mat.HasProperty("_overtex3");
+						bool hAlphaMask = mat.HasProperty("_AlphaMask");
+						bool hSpecularPower = mat.HasProperty("_SpecularPower");
+						bool hSpecularPowerNail = mat.HasProperty("_SpecularPowerNail");
+						bool hDetailMask = mat.HasProperty("_DetailMask");
+						bool hLineMask = mat.HasProperty("_LineMask");
+						bool hNip_Specular = mat.HasProperty("_nip_specular");
+						bool hIsHighLight = mat.HasProperty("_isHighLight");
+
+						Color shadowColor = new Color();
+						Texture mainTex = mat.GetTexture("_MainTex");
+						Texture overTex1 = null;
+						Texture overTex2 = null;
+						Texture overTex3 = null;
+						Texture alphaMask = null;
+						float specularPower = 0f;
+						float specularPowerNail = 0f;
+						Texture detailMask = null;
+						Texture lineMask = null;
+						float nip_specular = 0f;
+						float isHighLight = 0f;
+
+
+						if (hShadowColor)
+						{
+							shadowColor = mat.GetColor("_ShadowColor");
+							mat.SetColor("_ShadowColor", new Color(1, 1, 1, 0));
+						}
+						if (hOverTex1)
+						{
+							overTex1 = mat.GetTexture("_overtex1");
+							mat.SetTexture("_overtex1", null);
+						}
+						if (hOverTex2)
+						{
+							overTex2 = mat.GetTexture("_overtex2");
+							mat.SetTexture("_overtex2", null);
+						}
+						if (hOverTex3)
+						{
+							overTex3 = mat.GetTexture("_overtex3");
+							mat.SetTexture("_overtex3", null);
+						}
+						if (hAlphaMask)
+						{
+							alphaMask = mat.GetTexture("_AlphaMask");
+							mat.SetTexture("_AlphaMask", null);
+						}
+						if (hSpecularPower)
+						{
+							specularPower = mat.GetFloat("_SpecularPower");
+							mat.SetFloat("_SpecularPower", 0);
+						}
+						if (hSpecularPowerNail)
+						{
+							specularPowerNail = mat.GetFloat("_SpecularPowerNail");
+							mat.SetFloat("_SpecularPowerNail", 0);
+						}
+						if (hNip_Specular)
+						{
+							nip_specular = mat.GetFloat("_nip_specular");
+							mat.SetFloat("_nip_specular", 0);
+						}
+						if (hIsHighLight)
+						{
+							isHighLight = mat.GetFloat("_isHighLight");
+							mat.SetFloat("_isHighLight", 0);
+						}
+
+
+						RenderTexture renderTexture;
+						if (mainTex != null)
+						{
+							renderTexture = new RenderTexture(mainTex.width, mainTex.height, 24, RenderTextureFormat.ARGB32);
+						}
+						else
+						{
+							renderTexture = new RenderTexture(512, 512, 24, RenderTextureFormat.ARGB32);
+						}
+						Graphics.Blit(mainTex, renderTexture, mat);
+						//TextureWriter.SaveTex(renderTexture, baseSavePath + "test_" + matName + ".png");
+						PmxBuilder.saveTexture(renderTexture, baseSavePath + "test_" + matName + ".png");
+
+						var cmd = new CommandBuffer();
+						cmd.name = "Capture Mesh Output";
+						cmd.SetRenderTarget(renderTexture);
+						cmd.ClearRenderTarget(true, true, Color.clear);
+						cmd.DrawRenderer(componentsInChildren[i], mat);
+
+						camera.AddCommandBuffer(CameraEvent.AfterEverything, cmd);
+
+
+						renderTexture.Release();
+
+						if (overTex1 != null || overTex2 != null || overTex3 != null)
+						{
+							mat.SetTexture("_MainTex", null);
+							if (hDetailMask)
+							{
+								mat.SetTexture("_DetailMask", null);
+							}
+							if (hLineMask)
+							{
+								mat.SetTexture("_LineMask", null);
+							}
+						}
+
+						if (overTex1 != null)
+						{
+							mat.SetTexture("_overtex1", overTex1);
+							renderTexture = new RenderTexture(overTex1.width, overTex1.height, 24, RenderTextureFormat.ARGB32);
+							Graphics.Blit(null, renderTexture, mat);
+							PmxBuilder.saveTexture(renderTexture, baseSavePath + "test_" + matName + "_overtex1.png");
+							renderTexture.Release();
+							//TextureWriter.SaveTex(renderTexture, baseSavePath + "test_" + matName + "_overtex1.png");
+							mat.SetTexture("_overtex1", null);
+						}
+						if (overTex2 != null)
+						{
+							mat.SetTexture("_overtex2", overTex2);
+							renderTexture = new RenderTexture(overTex2.width, overTex2.height, 24, RenderTextureFormat.ARGB32);
+							Graphics.Blit(null, renderTexture, mat);
+							PmxBuilder.saveTexture(renderTexture, baseSavePath + "test_" + matName + "_overtex2.png");
+							renderTexture.Release();
+							//TextureWriter.SaveTex(renderTexture, baseSavePath + "test_" + matName + "_overtex2.png");
+							mat.SetTexture("_overtex2", null);
+						}
+						if (overTex3 != null)
+						{
+							mat.SetTexture("_overtex3", overTex3);
+							renderTexture = new RenderTexture(overTex3.width, overTex3.height, 24, RenderTextureFormat.ARGB32);
+							Graphics.Blit(null, renderTexture, mat);
+							PmxBuilder.saveTexture(renderTexture, baseSavePath + "test_" + matName + "_overtex3.png");
+							renderTexture.Release();
+							//TextureWriter.SaveTex(renderTexture, baseSavePath + "test_" + matName + "_overtex3.png");
+							mat.SetTexture("_overtex3", null);
+						}
+
+						if (hShadowColor)
+						{
+							mat.SetColor("_ShadowColor", shadowColor);
+						}
+						if (hOverTex1)
+						{
+							mat.SetTexture("_overtex1", overTex1);
+						}
+						if (hOverTex2)
+						{
+							mat.SetTexture("_overtex2", overTex2);
+						}
+						if (hOverTex3)
+						{
+							mat.SetTexture("_overtex3", overTex3);
+						}
+						if (hAlphaMask)
+						{
+							mat.SetTexture("_AlphaMask", alphaMask);
+						}
+						if (hSpecularPower)
+						{
+							mat.SetFloat("_SpecularPower", specularPower);
+						}
+						if (hSpecularPowerNail)
+						{
+							mat.SetFloat("_SpecularPowerNail", specularPower);
+						}
+						if (hNip_Specular)
+						{
+							mat.SetFloat("_nip_specular", nip_specular);
+						}
+						if (hIsHighLight)
+						{
+							mat.SetFloat("_isHighLight", isHighLight);
+						}
+						if (overTex1 != null || overTex2 != null || overTex3 != null)
+						{
+							mat.SetTexture("_MainTex", mainTex);
+							if (hDetailMask)
+							{
+								mat.SetTexture("_DetailMask", detailMask);
+							}
+							if (hLineMask)
+							{
+								mat.SetTexture("_LineMask", lineMask);
+							}
+						}
+					}
+					catch (Exception e)
+					{
+						Console.WriteLine(e.Message);
+					}
+				}
+			}
+		}
+
+	}
+	public static void saveTexture(RenderTexture renderTexture, string savePath)
+	{
+        RenderTexture.active = renderTexture;
+        GL.Flush();
+        Texture2D texture = new Texture2D(renderTexture.width, renderTexture.height, TextureFormat.ARGB32, false);
+        texture.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
+        texture.Apply();
+        RenderTexture.active = null;
+        byte[] bytes = texture.EncodeToPNG();
+        System.IO.File.WriteAllBytes(savePath, bytes);
+    }
     public void ChangeAnimations()
 	{
 		ChaControl characterControl = MakerAPI.GetCharacterControl();
