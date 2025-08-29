@@ -29,4 +29,22 @@ internal class CharacterInfoData
 	public float eyebrowOpenMax;
 
 	public float mouthOpenMax;
+
+	public List<float> pupilOffset;
+
+	public List<float> pupilScale;
+
+	public List<float> highlightUpOffset;
+
+	public List<float> highlightUpScale;
+
+    public List<float> highlightDownOffset;
+
+    public List<float> highlightDownScale;
+
+	public List<float> eyeRotation;
+
+	public List<float> highlightUpColor;
+
+	public List<float> highlightDownColor;
 }

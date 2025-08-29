@@ -687,7 +687,7 @@ internal class PmxBuilder
         byte[] bytes = texture.EncodeToPNG();
         System.IO.File.WriteAllBytes(savePath, bytes);
     }
-    public void ChangeAnimations()
+	public void ChangeAnimations()
 	{
 		ChaControl characterControl = MakerAPI.GetCharacterControl();
 		CustomBase makerBase = MakerAPI.GetMakerBase();
@@ -1911,6 +1911,8 @@ internal class PmxBuilder
 	{
 		ChaControl characterControl = MakerAPI.GetCharacterControl();
 		BindingFlags bindingAttr = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+		EyeLookMaterialControll eyeMatControllerl = characterControl.eyeLookMatCtrl[0].eyeLR == EYE_LR.EYE_L ? characterControl.eyeLookMatCtrl[0] : characterControl.eyeLookMatCtrl[1];
+		EyeLookMaterialControll eyeMatControllerr = characterControl.eyeLookMatCtrl[0].eyeLR == EYE_LR.EYE_R ? characterControl.eyeLookMatCtrl[0] : characterControl.eyeLookMatCtrl[1];
 		ChaFileFace fileFace = characterControl.fileFace;
 		List<string> list = (from field in fileFace.GetType().GetFields(bindingAttr)
 			select field.Name).ToList();
@@ -1958,9 +1960,42 @@ internal class PmxBuilder
 			ShapeInfoBody = characterControl.chaFile.custom.body.shapeValueBody.ToList(),
 			eyeOpenMax = characterControl.eyesCtrl.OpenMax,
 			eyebrowOpenMax = characterControl.eyebrowCtrl.OpenMax,
-			mouthOpenMax = characterControl.mouthCtrl.OpenMax,
+			mouthOpenMax = characterControl.mouthCtrl.OpenMax
         };
-		characterInfoData.Add(item4);
+
+		UnityEngine.Vector2 _vecl = eyeMatControllerl._material.GetTextureOffset(eyeMatControllerl.texStates[0].texID);
+		UnityEngine.Vector2 _vecr = eyeMatControllerr._material.GetTextureOffset(eyeMatControllerr.texStates[0].texID);
+		item4.pupilOffset = new List<float>() { _vecl.x, _vecl.y, _vecr.x, _vecr.y };
+
+        _vecl = eyeMatControllerl._material.GetTextureOffset(eyeMatControllerl.texStates[1].texID);
+        _vecr = eyeMatControllerr._material.GetTextureOffset(eyeMatControllerr.texStates[1].texID);
+        item4.highlightUpOffset = new List<float>() { _vecl.x, _vecl.y, _vecr.x, _vecr.y };
+
+        _vecl = eyeMatControllerl._material.GetTextureOffset(eyeMatControllerl.texStates[2].texID);
+        _vecr = eyeMatControllerr._material.GetTextureOffset(eyeMatControllerr.texStates[2].texID);
+        item4.highlightDownOffset = new List<float>() { _vecl.x, _vecl.y, _vecr.x, _vecr.y };
+
+        _vecl = eyeMatControllerl._material.GetTextureScale(eyeMatControllerl.texStates[0].texID);
+        _vecr = eyeMatControllerr._material.GetTextureScale(eyeMatControllerr.texStates[0].texID);
+        item4.pupilScale = new List<float>() { _vecl.x, _vecl.y, _vecr.x, _vecr.y };
+
+        _vecl = eyeMatControllerl._material.GetTextureScale(eyeMatControllerl.texStates[1].texID);
+        _vecr = eyeMatControllerr._material.GetTextureScale(eyeMatControllerr.texStates[1].texID);
+        item4.highlightUpScale = new List<float>() { _vecl.x, _vecl.y, _vecr.x, _vecr.y };
+
+        _vecl = eyeMatControllerl._material.GetTextureScale(eyeMatControllerl.texStates[2].texID);
+        _vecr = eyeMatControllerr._material.GetTextureScale(eyeMatControllerr.texStates[2].texID);
+        item4.highlightDownScale = new List<float>() { _vecl.x, _vecl.y, _vecr.x, _vecr.y };
+
+		item4.eyeRotation = new List<float>() { eyeMatControllerl._material.GetFloat("_rotation"), eyeMatControllerr._material.GetFloat("_rotation") };
+
+		Color _color = eyeMatControllerl._material.GetColor("_overcolor1");
+		item4.highlightUpColor = new List<float>() { _color.r, _color.g, _color.b, _color.a };
+
+		_color = eyeMatControllerl._material.GetColor("_overcolor2");
+		item4.highlightDownColor = new List<float>() { _color.r, _color.g, _color.b, _color.a };
+
+        characterInfoData.Add(item4);
 		ExportDataListToJson(chaFileCustomFaceData, "KK_ChaFileCustomFace.json");
 		ExportDataListToJson(chaFileCustomBodyData, "KK_ChaFileCustomBody.json");
 		ExportDataListToJson(chaFileCustomHairData, "KK_ChaFileCustomHair.json");
