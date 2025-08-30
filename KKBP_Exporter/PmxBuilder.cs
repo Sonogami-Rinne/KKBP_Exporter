@@ -165,7 +165,7 @@ internal class PmxBuilder
 
 	private List<BoneInfo> finalBoneInfo = new List<BoneInfo>();
 
-	//private bool ifBoneInfoExported = true;
+	private int exportedBoneInfoCount = 0;
 
 	public string BuildStart()
 	{
@@ -324,8 +324,9 @@ internal class PmxBuilder
 			boneInfo.rename(GetAltBoneName(boneInfo.targetTransform)); // Update the bone name to match the exported data
 		}
 
-        ExportDataListToJson(editBoneInfo, "KK_EditBoneInfo_" + nowCoordinate + ".json");
-		ExportDataListToJson(finalBoneInfo, "KK_FinalBoneInfo_" + nowCoordinate + ".json");
+        ExportDataListToJson(editBoneInfo, "KK_EditBoneInfo_" + exportedBoneInfoCount + ".json");
+		ExportDataListToJson(finalBoneInfo, "KK_FinalBoneInfo_" + exportedBoneInfoCount + ".json");
+		++exportedBoneInfoCount;
 		// //
     }
 
@@ -977,6 +978,30 @@ internal class PmxBuilder
 
     private void ClearMorphs()
 	{
+		// Female's correctOpenMax's value is generally set to 0.81.By printing blend shape's name and its value, we got the dict.It will fail under some circumstances,then they should try plan B
+		Dictionary<string, float> eyeBlendShapeWeight = new Dictionary<string, float>()
+		{
+            {"eye_face.f00_def_cl", 19},
+			{"eye_face.f00_def_op", 81},
+			{"kuti_face.f00_def_cl", 100},
+			{"eye_nose.nl00_def_cl", 19},
+			{"eye_nose.nl00_def_op", 81},
+			{"kuti_nose.nl00_def_cl", 100},
+			{"eye_siroL.sL00_def_cl", 19},
+			{"eye_siroL.sL00_def_op", 81},
+			{"eye_siroR.sR00_def_cl", 19},
+			{"eye_siroR.sR00_def_op", 81},
+			{"eye_line_u.elu00_def_cl", 19},
+			{"eye_line_u.elu00_def_op", 81},
+			{"eye_line_l.ell00_def_cl", 19},
+			{"eye_line_l.ell00_def_op", 81},
+			{"eye_naL.naL00_def_cl", 19},
+			{"eye_naL.naL00_def_op", 81},
+			{"eye_naM.naM00_def_cl", 19},
+			{"eye_naM.naM00_def_op", 81},
+			{"eye_naS.naS00_def_cl", 19},
+			{"eye_naS.naS00_def_op", 81}
+        };
 		ChaControl instance = Singleton<ChaControl>.Instance;
 		FBSTargetInfo[] fBSTarget = instance.eyesCtrl.FBSTarget;
 		for (int i = 0; i < fBSTarget.Length; i++)
@@ -985,7 +1010,18 @@ internal class PmxBuilder
 			int blendShapeCount = skinnedMeshRenderer.sharedMesh.blendShapeCount;
 			for (int j = 0; j < blendShapeCount; j++)
 			{
-				skinnedMeshRenderer.SetBlendShapeWeight(j, 0f);
+				//if (skinnedMeshRenderer.GetBlendShapeWeight(j) != 0f)
+				//{
+				//	Console.WriteLine(skinnedMeshRenderer.sharedMesh.GetBlendShapeName(j) + " " + skinnedMeshRenderer.GetBlendShapeWeight(j));
+				//}
+				if (eyeBlendShapeWeight.TryGetValue(skinnedMeshRenderer.sharedMesh.GetBlendShapeName(j), out var blendShapeWeight))
+				{
+                    skinnedMeshRenderer.SetBlendShapeWeight(j, blendShapeWeight);
+                }
+				else
+				{
+                    skinnedMeshRenderer.SetBlendShapeWeight(j, 0f);
+                }
 			}
 		}
 		fBSTarget = instance.mouthCtrl.FBSTarget;
