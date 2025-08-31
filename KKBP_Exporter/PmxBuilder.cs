@@ -98,6 +98,8 @@ internal class PmxBuilder
 
 	public bool exportCurrentPose;
 
+	public bool expoertLightDarkTexture;
+
 	public static int minCoord;
 
 	public static int maxCoord;
@@ -200,8 +202,11 @@ internal class PmxBuilder
 			CreateInstanceIDs();
 			SetSavePath();
 			Directory.CreateDirectory(savePath);
-			Directory.CreateDirectory(savePath + "/pre_light");
-			Directory.CreateDirectory(savePath + "/pre_dark");
+			if (expoertLightDarkTexture)
+			{
+                Directory.CreateDirectory(savePath + "/pre_light");
+                Directory.CreateDirectory(savePath + "/pre_dark");
+            }
 			if (!exportWithEnabledShapekeys)
 			{
 				ClearMorphs();
@@ -223,7 +228,10 @@ internal class PmxBuilder
 				ExportGagEyes();
 			}
 			testAddAccessory();
-            testExportLightTexture();
+            if (expoertLightDarkTexture)
+			{
+                testExportLightTexture();
+            }
             ExportSpecialTextures();
 			if (nowCoordinate < maxCoord)
 			{
@@ -587,10 +595,6 @@ internal class PmxBuilder
 		// If that occur, we should walk through all the triangle faces, collect data and then combine them into a entire one.
 		// However, it seems to be impossible to happen, because this means the color will change if we simply adjust character's height.
 
-		// About the experimentMode, some vertices' uv position are out of the range(0,1).And how shader tile the picture determine how the mesh look like.
-		// experimentMode off, force remapping them to (0,1).But if shader do not simply tile the texture, for example, if uv.x > 1 then color = black, it will fail
-		// experimentMode on, keep them in original place, move camera to the center of these uv blocks and render them all.But in blender, we should adjust uv
-		bool experimentMode = true;
 		GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, 100, 0));
 		// Some wired things will happen if you move main camera far away from 0,0 and export.
 		// For sure, I think nobody will do this except me.
@@ -636,8 +640,6 @@ internal class PmxBuilder
         }
 
 		List<UVAdjustment> adjustments = new List<UVAdjustment>();
-		//Matrix4x4 drawPosition = Matrix4x4.identity;
-		//drawPosition.SetColumn(3, new UnityEngine.Vector4(10, 10, 0, 1));
 
 		for (int i = 0; i < meshRenders.Count; i++)
 		{
@@ -673,49 +675,48 @@ internal class PmxBuilder
 			int yOffset;
 			UnityEngine.Vector3[] verts = new UnityEngine.Vector3[uvs.Length];
 
-			// Transform mesh into a surface according to its uv
-			if (experimentMode)
-			{
-                float minX = float.PositiveInfinity;
-                float minY = float.PositiveInfinity;
-                float maxX = float.NegativeInfinity;
-                float maxY = float.NegativeInfinity;
-                for (int j = 0; j < uvs.Length; j++)
-                {
-                    verts[j] = new UnityEngine.Vector3(uvs[j].x,uvs[j].y, 0f);
-                    minX = Mathf.Min(minX, uvs[j].x);
-                    maxX = Mathf.Max(maxX, uvs[j].x);
-                    minY = Mathf.Min(minY, uvs[j].y);
-                    maxY = Mathf.Max(maxY, uvs[j].y);
-                }
-				if (minX == float.PositiveInfinity)
-				{
-					continue;
-				}
-				xOffset = ((int)Math.Floor(minX));
-				yOffset = ((int)Math.Floor(minY));
-				horizontalBlockCount = (int)Math.Ceiling(maxX) - xOffset;
-				verticalBlockCount = (int)Math.Ceiling(maxY) - yOffset;
-
-				//Console.WriteLine((xOffset + horizontalBlockCount / 2.0f) + "" + (yOffset + verticalBlockCount / 2.0f));
-				camera.transform.position = new UnityEngine.Vector3(xOffset + horizontalBlockCount / 2.0f, yOffset + verticalBlockCount / 2.0f, -10f);
-				camera.transform.LookAt(new UnityEngine.Vector3(camera.transform.position.x, camera.transform.position.y, 0f));
-				camera.orthographicSize = verticalBlockCount / 2.0f;
-				camera.aspect = (float)horizontalBlockCount / verticalBlockCount;
-
-				adjustments.Add(new UVAdjustment(meshRenders[i].name, PmxBuilder.GetGameObjectPath(meshRenders[i].gameObject), meshRenderInstanceID, xOffset, yOffset, horizontalBlockCount, verticalBlockCount));
+            // Transform mesh into a surface according to its uv
+            float minX = float.PositiveInfinity;
+            float minY = float.PositiveInfinity;
+            float maxX = float.NegativeInfinity;
+            float maxY = float.NegativeInfinity;
+            for (int j = 0; j < uvs.Length; j++)
+            {
+                verts[j] = new UnityEngine.Vector3(uvs[j].x, uvs[j].y, 0f);
+                minX = Mathf.Min(minX, uvs[j].x);
+                maxX = Mathf.Max(maxX, uvs[j].x);
+                minY = Mathf.Min(minY, uvs[j].y);
+                maxY = Mathf.Max(maxY, uvs[j].y);
             }
-			else
-			{
-                for (int j = 0; j < uvs.Length; j++)
-                {
-					verts[j] = new UnityEngine.Vector3(
-						10 + Mathf.Repeat(uvs[j].x, 1f),
-						10 + Mathf.Repeat(uvs[j].y, 1f),
-						0f);
-				}
+            if (minX == float.PositiveInfinity)
+            {
+                continue;
             }
-			mesh.vertices = verts;
+            xOffset = ((int)Math.Floor(minX));
+            yOffset = ((int)Math.Floor(minY));
+            horizontalBlockCount = (int)Math.Ceiling(maxX) - xOffset;
+            verticalBlockCount = (int)Math.Ceiling(maxY) - yOffset;
+
+            camera.transform.position = new UnityEngine.Vector3(xOffset + horizontalBlockCount / 2.0f, yOffset + verticalBlockCount / 2.0f, -10f);
+            camera.transform.LookAt(new UnityEngine.Vector3(camera.transform.position.x, camera.transform.position.y, 0f));
+            camera.orthographicSize = verticalBlockCount / 2.0f;
+            camera.aspect = (float)horizontalBlockCount / verticalBlockCount;
+
+            adjustments.Add(new UVAdjustment(meshRenders[i].name, PmxBuilder.GetGameObjectPath(meshRenders[i].gameObject), meshRenderInstanceID, -xOffset, -yOffset, horizontalBlockCount, verticalBlockCount));
+
+            // Some vertices' uv position are out of the range(0,1).And how shader tile the picture determine how the mesh look like.
+            // code below, force remapping them to (0,1).But if shader do not simply tile the texture, for example, if uv.x > 1 then color = black, it will fail
+            //         else
+            //{
+            //             for (int j = 0; j < uvs.Length; j++)
+            //             {
+            //		verts[j] = new UnityEngine.Vector3(
+            //			10 + Mathf.Repeat(uvs[j].x, 1f),
+            //			10 + Mathf.Repeat(uvs[j].y, 1f),
+            //			0f);
+            //	}
+            //         }
+            mesh.vertices = verts;
 			mesh.RecalculateBounds();
 			mesh.RecalculateNormals();
 
@@ -762,6 +763,10 @@ internal class PmxBuilder
                         material.SetFloat("_nip_specular", 0f);
                     }
 
+					//if (material.HasProperty("_overtex1"))
+					//if (material.HasProperty("_overtex2"))
+					//if (material.HasProperty("_overtex3"))
+
                     // light
                     lightGameObject.SetActive(true);
                     backLightGameObject.SetActive(false);
@@ -775,9 +780,6 @@ internal class PmxBuilder
                     //GL.Flush();
                     PmxBuilder.saveTexture(renderTexture, savePath + "/pre_light/" + meshRenderInstanceID + "_" + material.name.Replace(" (Instance)", "") + ".png");
 
-                    //RenderTexture.active = renderTexture;
-                    //GL.Clear(true, true, Color.clear); // Clear color and depth
-                    //RenderTexture.active = null;
                     camera.targetTexture = null;
                     renderTexture.Release();
 
@@ -794,9 +796,6 @@ internal class PmxBuilder
                     //GL.Flush();
                     PmxBuilder.saveTexture(renderTexture, savePath + "/pre_dark/" + meshRenderInstanceID + "_" + material.name.Replace(" (Instance)", "") + ".png");
 
-                    //RenderTexture.active = renderTexture;
-                    //GL.Clear(true, true, Color.clear); // Clear color and depth
-                    //RenderTexture.active = null;
                     camera.targetTexture = null;
                     renderTexture.Release();
                 }
@@ -809,7 +808,7 @@ internal class PmxBuilder
                     Material.Destroy(material);
                 }
 			}
-			Mesh.DestroyImmediate(mesh);
+			Mesh.Destroy(mesh);
 		}
 		if (adjustments.Count > 0)
 		{
@@ -1151,10 +1150,6 @@ internal class PmxBuilder
 			int blendShapeCount = skinnedMeshRenderer.sharedMesh.blendShapeCount;
 			for (int j = 0; j < blendShapeCount; j++)
 			{
-				//if (skinnedMeshRenderer.GetBlendShapeWeight(j) != 0f)
-				//{
-				//	Console.WriteLine(skinnedMeshRenderer.sharedMesh.GetBlendShapeName(j) + " " + skinnedMeshRenderer.GetBlendShapeWeight(j));
-				//}
 				if (eyeBlendShapeWeight.TryGetValue(skinnedMeshRenderer.sharedMesh.GetBlendShapeName(j), out var blendShapeWeight))
 				{
                     skinnedMeshRenderer.SetBlendShapeWeight(j, blendShapeWeight);
