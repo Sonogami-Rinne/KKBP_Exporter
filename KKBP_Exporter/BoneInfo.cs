@@ -16,10 +16,6 @@ internal class BoneInfo
     public List<float> worldRotation;
     public List<float> worldScale;
     [NonSerialized]
-    public Vector3 _position;
-    [NonSerialized]
-    public Vector3 _rotation;
-    [NonSerialized]
     public Vector3 _scale;
     [NonSerialized]
     public Transform targetTransform;
@@ -28,6 +24,10 @@ internal class BoneInfo
 
     public static GameObject converter;
 
+    private BoneInfo()
+    {
+
+    }
 
     public BoneInfo(string boneName, Transform transform)
     {
@@ -73,8 +73,6 @@ internal class BoneInfo
         tempT.rotation = rotation;
         Quaternion rotBlender = tempT.localRotation;
 
-        this._position = position;
-        this._rotation = rotation.eulerAngles;
         this._scale = scale;
 
         this.position = new List<float> { -position.x, -position.z, position.y };
@@ -106,8 +104,21 @@ internal class BoneInfo
 
     }
     
-    public void rename(string name)
+    public BoneInfo CreateNew(string newName)
     {
-        this.boneName = name;
+        BoneInfo info = new BoneInfo();
+
+        info.boneName = newName;
+        info.transform = new List<float>(transform);
+        info.position = new List<float>(position);
+        info.rotation = new List<float>(rotation);
+        info.scale = new List<float>(scale);
+        info.worldTransform = new List<float>(worldTransform);
+        info.worldPosition = new List<float>(worldPosition);
+        info.worldRotation = new List<float>(worldRotation);
+        info.worldScale = new List<float>(worldScale);
+        info._scale = new Vector3(_scale.x, _scale.y, _scale.z);
+        info.targetTransform = targetTransform;
+        return info;
     }
 }

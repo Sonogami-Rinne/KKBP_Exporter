@@ -166,8 +166,6 @@ internal class PmxBuilder
 
 	private Dictionary<string, int> currentBoneKeysList = new Dictionary<string, int>();
 
-	private List<BoneInfo> finalBoneInfo = new List<BoneInfo>();
-
 	private int exportedBoneInfoCount = 0;
 
 	private Camera camera;
@@ -180,7 +178,15 @@ internal class PmxBuilder
 
 	private List<Renderer> meshRenders = new List<Renderer>();
 
-	public string BuildStart()
+    private List<BoneInfo> editBoneInfo = new List<BoneInfo>();
+
+    private Dictionary<string,BoneInfo> finalBoneInfo = new Dictionary<string, BoneInfo>();
+
+	private List<BoneInfo> finalBoneInfoCache = new List<BoneInfo>();
+
+    private List<UVAdjustment> UVAdjustments = new List<UVAdjustment>();
+
+    public string BuildStart()
 	{
 		try
 		{
@@ -212,25 +218,23 @@ internal class PmxBuilder
 				ClearMorphs();
 			}
 			SetSkinnedMeshList();
-			testPrepareModel();
+			PrepareModel();
 			
 			if (nowCoordinate < maxCoord)
 			{
-				//CreateBoneList();
-				testCreateBoneList();
+				CreateBoneList();
 			}
-			testCreateMesh();
-			//CreateMeshList();
-            
+			CreateMeshList();
+
 			if (nowCoordinate == maxCoord)
 			{
                 CreateMorph();
 				ExportGagEyes();
 			}
-			testAddAccessory();
+			AddAccessory();
             if (expoertLightDarkTexture)
 			{
-                testExportLightTexture();
+                ExportLightTexture();
             }
             ExportSpecialTextures();
 			if (nowCoordinate < maxCoord)
@@ -270,311 +274,22 @@ internal class PmxBuilder
 		yield return null;
 	}
 
-	public void testCreateBoneList()
-	{
-        //This function is basically the same as the original one. For easier review, I¡¯ll mark the changes I made.
-        offsetBoneCandidates.Clear();
-        currentBonesList.Clear();
-		// //
-        List<BoneInfo> editBoneInfo = new List<BoneInfo>();
-		// //
-
-        Transform transform = GameObject.Find("BodyTop").transform;
-        Dictionary<Transform, int> dictionary = new Dictionary<Transform, int>();
-        Transform[] componentsInChildren = transform.GetComponentsInChildren<Transform>();
-        for (int i = 0; i < componentsInChildren.Length; i++)
-        {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.Append(GetAltBoneName(componentsInChildren[i]));
-            stringBuilder.Append(" ");
-            stringBuilder.Append(componentsInChildren[i].GetInstanceID().ToString());
-            string text = stringBuilder.ToString();
-            if (pmxFile.BoneBackupData.TryGetValue(text, out var value))
-            {
-                if (!whitelistOffsetBones.Contains(GetAltBoneName(componentsInChildren[i], ignoreID: true), StringComparer.Ordinal))
-                {
-                    continue;
-                }
-                PmxBone pmxBone = value.PmxBone;
-                if (pmxBone != null)
-                {
-                    UnityEngine.Vector3 vector = componentsInChildren[i].transform.position * scale;
-                    BoneOffsetData bnOffsetData = new BoneOffsetData(offset: new PmxLib.Vector3(0f - vector.x, vector.y, 0f - vector.z) - pmxBone.Position, boneName: GetAltBoneName(componentsInChildren[i]));
-                    AddToBoneOffsetDataList(bnOffsetData);
-                    offsetBoneCandidates.Add(text);
-                    StringBuilder stringBuilder2 = new StringBuilder();
-                    stringBuilder2.Append(GetAltBoneName(componentsInChildren[i]));
-                    stringBuilder2.Append(" ");
-                    stringBuilder2.Append(componentsInChildren[i].GetInstanceID().ToString());
-                    text = stringBuilder2.ToString();
-                }
-            }
-            int value2;
-            if (pmxFile.BoneList.Count > 0)
-            {
-                StringBuilder stringBuilder3 = new StringBuilder();
-                stringBuilder3.Append(GetAltBoneName(componentsInChildren[i].parent));
-                stringBuilder3.Append(" ");
-                stringBuilder3.Append(componentsInChildren[i].parent.GetInstanceID().ToString());
-                string key = stringBuilder3.ToString();
-                currentBoneKeysList.TryGetValue(key, out value2);
-            }
-            else
-            {
-                dictionary.TryGetValue(componentsInChildren[i].parent, out value2);
-            }
-            PmxBone pmxBone2 = new PmxBone
-            {
-                Name = GetAltBoneName(componentsInChildren[i]),
-                NameE = componentsInChildren[i].GetInstanceID().ToString(),
-                Parent = value2
-            };
-            UnityEngine.Vector3 vector2 = componentsInChildren[i].transform.position * scale;
-            pmxBone2.Position = new PmxLib.Vector3(0f - vector2.x, vector2.y, 0f - vector2.z);
-            dictionary.Add(componentsInChildren[i], i);
-            pmxFile.BoneList.Add(pmxBone2);
-            pmxFile.BoneBackupData.Add(text, new Pmx.BackupBoneData(pmxBone2.Name, componentsInChildren[i].GetInstanceID(), pmxBone2));
-            currentBoneKeysList.Add(text, currentBoneKeysList.Count);
-            currentBonesList.Add(pmxBone2.Name);
-			// //
-			editBoneInfo.Add(new BoneInfo(pmxBone2.Name, componentsInChildren[i]));
-			// //
-        }
-		// //
-		foreach(BoneInfo boneInfo in finalBoneInfo)
-		{
-			boneInfo.rename(GetAltBoneName(boneInfo.targetTransform)); // Update the bone name to match the exported data
-		}
-
-        ExportDataListToJson(editBoneInfo, "KK_EditBoneInfo_" + exportedBoneInfoCount + ".json");
-		ExportDataListToJson(finalBoneInfo, "KK_FinalBoneInfo_" + exportedBoneInfoCount + ".json");
-		++exportedBoneInfoCount;
-		// //
-    }
-
-	public void testCreateMesh()
-	{
-        //This function is basically the same as the original one. For easier review, I¡¯ll mark the changes I made.
-        // //
-        meshRenders.Clear();
-		// //
-		string[] source = new string[0];
-        string[] source2 = new string[7] { "cf_O_namida_L", "cf_O_namida_M", "cf_O_namida_S", "cf_O_gag_eye_00", "cf_O_gag_eye_01", "cf_O_gag_eye_02", "o_tang" };
-        string[] source3 = new string[8] { "o_mnpa", "o_mnpb", "n_tang", "n_tang_silhouette", "o_dankon", "o_gomu", "o_dan_f", "cf_O_canine" };
-        string[] source4 = new string[23]
-        {
-            "o_hit_armL", "o_hit_armR", "o_hit_footL", "o_hit_footR", "o_hit_handL", "o_hit_handR", "o_hit_hara", "o_hit_haraB", "o_hit_haraUnder", "o_hit_kneeBL",
-            "o_hit_kneeBR", "o_hit_kneeL", "o_hit_kneeR", "o_hit_kokan", "o_hit_legBL", "o_hit_legBR", "o_hit_legL", "o_hit_legR", "o_hit_mune", "o_hit_muneB",
-            "o_hit_siriL", "o_hit_siriR", "cf_O_face_atari"
-        };
-        SkinnedMeshRenderer[] componentsInChildren = GameObject.Find("BodyTop").transform.GetComponentsInChildren<SkinnedMeshRenderer>(includeInactive: true);
-        for (int i = 0; i < componentsInChildren.Length; i++)
-        {
-            if (((!componentsInChildren[i].enabled || !componentsInChildren[i].isVisible || source.Contains(componentsInChildren[i].name, StringComparer.Ordinal)) && (!componentsInChildren[i].enabled || !source2.Contains(componentsInChildren[i].name, StringComparer.Ordinal)) && (!exportAll || !componentsInChildren[i].enabled || source3.Contains(componentsInChildren[i].name, StringComparer.Ordinal)) && (!exportHitBoxes || !componentsInChildren[i].enabled || !source4.Contains(componentsInChildren[i].name, StringComparer.Ordinal) || nowCoordinate != maxCoord)) || (nowCoordinate < maxCoord && ignoreList.Contains(componentsInChildren[i].name, StringComparer.Ordinal) && componentsInChildren[i].sharedMaterials.Count() > 0 && ignoreList.Contains(CleanUpMaterialName(componentsInChildren[i].sharedMaterial.name), StringComparer.Ordinal)) || (nowCoordinate == maxCoord && (!ignoreList.Contains(componentsInChildren[i].name, StringComparer.Ordinal) || (ignoreList.Contains(componentsInChildren[i].name, StringComparer.Ordinal) && componentsInChildren[i].sharedMaterials.Count() > 0 && !ignoreList.Contains(CleanUpMaterialName(componentsInChildren[i].sharedMaterial.name), StringComparer.Ordinal)))))
-            {
-                continue;
-            }
-			meshRenders.Add(componentsInChildren[i]);
-
-            Console.WriteLine("Exporting: " + componentsInChildren[i].name);
-            if (componentsInChildren[i].sharedMaterials.Count() == 0)
-            {
-                Material material = new Material(Shader.Find("Diffuse"));
-                material.name = componentsInChildren[i].name + "_M";
-                componentsInChildren[i].material = material;
-            }
-			
-            SMRData sMRData = new SMRData(this, componentsInChildren[i]);
-            AddToSMRDataList(sMRData);
-            MaterialDataComplete matData = new MaterialDataComplete(this, componentsInChildren[i]);
-            AddToMaterialDataCompleteList(matData);
-            if (currentRendererMaterialMapping.ContainsKey(componentsInChildren[i]))
-            {
-                Console.WriteLine("Issue - Renderer already added to Material name cache: " + sMRData.SMRName);
-            }
-            else
-            {
-                currentRendererMaterialMapping.Add(componentsInChildren[i], sMRData.SMRMaterialNames);
-            }
-            vertics_num[i] = componentsInChildren[i].sharedMesh.vertices.Length;
-            vertics_name[i] = componentsInChildren[i].sharedMaterial.name;
-            _ = componentsInChildren[i].gameObject;
-            BoneWeight[] boneWeights = componentsInChildren[i].sharedMesh.boneWeights;
-            Transform transform = componentsInChildren[i].gameObject.transform;
-            int bone = sbi(GetAltBoneName(transform), transform.GetInstanceID().ToString());
-            Mesh mesh = new Mesh();
-            componentsInChildren[i].BakeMesh(mesh);
-            Mesh mesh2 = mesh;
-            UnityEngine.Vector2[] uv = mesh2.uv;
-            List<UnityEngine.Vector2[]> list = new List<UnityEngine.Vector2[]> { mesh2.uv2, mesh2.uv3, mesh2.uv4 };
-            _ = mesh2.colors;
-            UnityEngine.Vector3[] normals = mesh2.normals;
-            UnityEngine.Vector3[] vertices = mesh2.vertices;
-            for (int j = 0; j < mesh2.subMeshCount; j++)
-            {
-                int[] triangles = mesh2.GetTriangles(j);
-                AddFaceList(triangles, vertexCount);
-                if (j < componentsInChildren[i].sharedMaterials.Count())
-                {
-                    CreateMaterial(componentsInChildren[i].sharedMaterials[j], sMRData.SMRMaterialNames[j], triangles.Length);
-                }
-                else if (componentsInChildren[i].sharedMaterial != null)
-                {
-                    CreateMaterial(componentsInChildren[i].sharedMaterial, sMRData.SMRMaterialNames[0], triangles.Length);
-                }
-            }
-            if (string.CompareOrdinal(componentsInChildren[i].name, "cf_O_eyeline") == 0)
-            {
-                int[] triangles2 = mesh2.GetTriangles(0);
-                AddFaceList(triangles2, vertexCount);
-                for (int k = 1; k < 2; k++)
-                {
-                    CreateMaterial(componentsInChildren[i].sharedMaterials[k], sMRData.SMRMaterialNames[k], triangles2.Length);
-                }
-            }
-            vertexCount += mesh2.vertexCount;
-            for (int l = 0; l < mesh2.vertexCount; l++)
-            {
-                PmxVertex pmxVertex = new PmxVertex
-                {
-                    UV = new PmxLib.Vector2(uv[l].x, (float)((double)(0f - uv[l].y) + 1.0))
-                };
-                for (int m = 0; m < list.Count; m++)
-                {
-                    if (list[m].Length != 0)
-                    {
-                        pmxVertex.UVA[m] = new PmxLib.Vector4(list[m][l].x, (float)((double)(0f - list[m][l].y) + 1.0), 0f, 0f);
-                    }
-                }
-                if (boneWeights.Length != 0)
-                {
-                    pmxVertex.Weight = ConvertBoneWeight(boneWeights[l], componentsInChildren[i].bones);
-                }
-                else
-                {
-                    pmxVertex.Weight = new PmxVertex.BoneWeight[4];
-                    pmxVertex.Weight[0].Bone = bone;
-                    pmxVertex.Weight[0].Value = 1f;
-                }
-                UnityEngine.Vector3 vector = componentsInChildren[i].transform.TransformDirection(normals[l]);
-                pmxVertex.Normal = new PmxLib.Vector3(0f - vector.x, vector.y, 0f - vector.z);
-				// //
-                //UnityEngine.Vector3 vector2 = componentsInChildren[i].transform.TransformPointUnscaled(vertices[l]);// ?
-                UnityEngine.Vector3 vector2 = componentsInChildren[i].transform.TransformPoint(vertices[l]);
-				// //
-                pmxVertex.Position = new PmxLib.Vector3((0f - vector2.x) * (float)scale, vector2.y * (float)scale, (0f - vector2.z) * (float)scale);
-                pmxVertex.Deform = PmxVertex.DeformType.BDEF4;
-                pmxFile.VertexList.Add(pmxVertex);
-            }
-			// //
-			Mesh.Destroy(mesh2);
-			// //
-        }
-    }
-
-	public void testPrepareModel()
+	public void PrepareModel()
 	{
         Transform transform = GameObject.Find("BodyTop").transform;
         Transform[] componentsInChildren = transform.GetComponentsInChildren<Transform>();
 
-		finalBoneInfo.Clear();
+		finalBoneInfoCache.Clear();
         foreach (Transform component in componentsInChildren)
         {
-            finalBoneInfo.Add(new BoneInfo(component.name, component));
+            finalBoneInfoCache.Add(new BoneInfo(component.name, component));
         }
         foreach (Transform component in componentsInChildren)
         {
 			component.SetLocalScale(1, 1, 1);
         }
     }
-	// Seem to be no effect, even though I try to update the reference of bone in final cycle
-    public void testResetModel()
-	{
-        foreach (BoneInfo item in finalBoneInfo)
-        {
-            item.targetTransform.SetLocalScale(item._scale.x, item._scale.y, item._scale.z);
-        }
-        finalBoneInfo.Clear();
-    }
-    private void testAddAccessory()
-    {
-        MeshFilter[] componentsInChildren = GameObject.Find("BodyTop").transform.GetComponentsInChildren<MeshFilter>(includeInactive: true);
-        for (int i = 0; i < componentsInChildren.Length; i++)
-        {
-            MeshRenderer meshRenderer = componentsInChildren[i].gameObject.GetComponent(typeof(MeshRenderer)) as MeshRenderer;
-            if (!meshRenderer.enabled || (nowCoordinate < maxCoord && ignoreList.Contains(meshRenderer.name, StringComparer.Ordinal) && meshRenderer.sharedMaterials.Count() > 0 && ignoreList.Contains(CleanUpMaterialName(meshRenderer.sharedMaterial.name), StringComparer.Ordinal)) || (nowCoordinate == maxCoord && !ignoreList.Contains(meshRenderer.name, StringComparer.Ordinal) && meshRenderer.sharedMaterials.Count() > 0 && !ignoreList.Contains(CleanUpMaterialName(meshRenderer.sharedMaterial.name), StringComparer.Ordinal)))
-            {
-                continue;
-            }
-			// //
-			meshRenders.Add(meshRenderer);
-			// //
-            Console.WriteLine("Exporting Acc: " + meshRenderer.name);
-            SMRData sMRData = new SMRData(this, meshRenderer);
-            AddToSMRDataList(sMRData);
-            MaterialDataComplete matData = new MaterialDataComplete(this, meshRenderer);
-            AddToMaterialDataCompleteList(matData);
-            if (currentRendererMaterialMapping.ContainsKey(meshRenderer))
-            {
-                Console.WriteLine("Issue - Renderer already added to Material name cache: " + sMRData.SMRName);
-            }
-            else
-            {
-                currentRendererMaterialMapping.Add(meshRenderer, sMRData.SMRMaterialNames);
-            }
-            GameObject gameObject = componentsInChildren[i].gameObject;
-            Mesh sharedMesh = componentsInChildren[i].sharedMesh;
-            _ = sharedMesh.boneWeights;
-            Transform transform = componentsInChildren[i].gameObject.transform;
-            int bone = sbi(GetAltBoneName(transform), transform.GetInstanceID().ToString());
-            UnityEngine.Vector2[] uv = sharedMesh.uv;
-            List<UnityEngine.Vector2[]> list = new List<UnityEngine.Vector2[]> { sharedMesh.uv2, sharedMesh.uv3, sharedMesh.uv4 };
-            UnityEngine.Vector3[] normals = sharedMesh.normals;
-            UnityEngine.Vector3[] vertices = sharedMesh.vertices;
-            for (int j = 0; j < sharedMesh.subMeshCount; j++)
-            {
-                int[] triangles = sharedMesh.GetTriangles(j);
-                AddFaceList(triangles, vertexCount);
-                CreateMaterial(meshRenderer.sharedMaterials[j], sMRData.SMRMaterialNames[j], triangles.Length);
-            }
-            vertexCount += sharedMesh.vertexCount;
-            bool uv_error_flag = false;
-            for (int k = 0; k < sharedMesh.vertexCount; k++)
-            {
-                PmxVertex pmxVertex = new PmxVertex();
-                try
-                {
-                    pmxVertex.UV = new PmxLib.Vector2(uv[k].x, (float)((double)(0f - uv[k].y) + 1.0));
-                    pmxVertex.Weight = new PmxVertex.BoneWeight[4];
-                }
-                catch
-                {
-                    if (uv_error_flag == false)
-                    {
-                        Console.WriteLine("Issue - Object did not have a UV map: " + meshRenderer.name);
-                    }
-                    uv_error_flag = true;
-                    pmxVertex.UV = new PmxLib.Vector2();
-                    pmxVertex.Weight = new PmxVertex.BoneWeight[4];
-                }
-                pmxVertex.Weight[0].Bone = bone;
-                pmxVertex.Weight[0].Value = 1f;
-                for (int l = 0; l < list.Count; l++)
-                {
-                    if (list[l].Length != 0)
-                    {
-                        pmxVertex.UVA[l] = new PmxLib.Vector4(list[l][k].x, (float)((double)(0f - list[l][k].y) + 1.0), 0f, 0f);
-                    }
-                }
-                UnityEngine.Vector3 vector = gameObject.transform.TransformDirection(normals[k]);
-                pmxVertex.Normal = new PmxLib.Vector3(0f - vector.x, vector.y, 0f - vector.z);
-                UnityEngine.Vector3 vector2 = gameObject.transform.TransformPoint(vertices[k]);
-                pmxVertex.Position = new PmxLib.Vector3((0f - vector2.x) * (float)scale, vector2.y * (float)scale, (0f - vector2.z) * (float)scale);
-                pmxVertex.Deform = PmxVertex.DeformType.BDEF4;
-                pmxFile.VertexList.Add(pmxVertex);
-            }
-        }
-    }
+
     public void CleanUp()
 	{
 		Camera.Destroy(camera);
@@ -587,8 +302,14 @@ internal class PmxBuilder
         {
             lights[i].enabled = true;
         }
+		// I think it's no need to recovery the scale info......
+        //foreach (BoneInfo item in finalBoneInfo.Values)
+        //{
+        //    item.targetTransform.SetLocalScale(item._scale.x, item._scale.y, item._scale.z);
+        //}
+        //finalBoneInfo.Clear();
     }
-    public void testExportLightTexture()
+    public void ExportLightTexture()
     {
 		// This method get texture by transform meshes into a surface according to their UV, then use a camera to capture.As Graphic.Blit() can't work with some shaders, so we use this complex one.
 		// However, it modify vertices' position, if the shader need it to render,we will get wrong data.
@@ -638,8 +359,6 @@ internal class PmxBuilder
 			backLightGameObject.transform.position = new UnityEngine.Vector3(0.5f, 0.5f, 10f);
 			backLightGameObject.transform.forward = -camera.transform.forward;
         }
-
-		List<UVAdjustment> adjustments = new List<UVAdjustment>();
 
 		for (int i = 0; i < meshRenders.Count; i++)
 		{
@@ -702,7 +421,11 @@ internal class PmxBuilder
             camera.orthographicSize = verticalBlockCount / 2.0f;
             camera.aspect = (float)horizontalBlockCount / verticalBlockCount;
 
-            adjustments.Add(new UVAdjustment(meshRenders[i].name, PmxBuilder.GetGameObjectPath(meshRenders[i].gameObject), meshRenderInstanceID, -xOffset, -yOffset, horizontalBlockCount, verticalBlockCount));
+			var smr = meshRenders[i];
+			string smrName = smr.name;
+
+            smrName = ((ignoreList.Contains(smrName, StringComparer.Ordinal) && smr.sharedMaterials.Count() > 0 && ignoreList.Contains(PmxBuilder.CleanUpMaterialName(smr.sharedMaterial.name), StringComparer.Ordinal)) ? smrName : (smrName + " " + PmxBuilder.GetAltInstanceID(smr)));
+            UVAdjustments.Add(new UVAdjustment(smrName, PmxBuilder.GetGameObjectPath(meshRenders[i].gameObject), meshRenderInstanceID, -xOffset, -yOffset, horizontalBlockCount, verticalBlockCount));
 
             // Some vertices' uv position are out of the range(0,1).And how shader tile the picture determine how the mesh look like.
             // code below, force remapping them to (0,1).But if shader do not simply tile the texture, for example, if uv.x > 1 then color = black, it will fail
@@ -754,10 +477,10 @@ internal class PmxBuilder
                     {
                         material.SetFloat("_SpecularPowerNail", 0f);
                     }
-                    if (material.HasProperty("_isHighLight"))
-                    {
-                        material.SetFloat("_isHighLight", 0f);
-                    }
+                    //if (material.HasProperty("_isHighLight"))
+                    //{
+                    //    material.SetFloat("_isHighLight", 0f);
+                    //}
                     if (material.HasProperty("_nip_specular"))
                     {
                         material.SetFloat("_nip_specular", 0f);
@@ -778,7 +501,7 @@ internal class PmxBuilder
                     Graphics.DrawMesh(mesh, Matrix4x4.identity, material, 0, camera);
                     camera.Render();
                     //GL.Flush();
-                    PmxBuilder.saveTexture(renderTexture, savePath + "/pre_light/" + meshRenderInstanceID + "_" + material.name.Replace(" (Instance)", "") + ".png");
+                    PmxBuilder.saveTexture(renderTexture, savePath + "/pre_light/" + smrName + "_" + material.name.Replace(" (Instance)", "") + ".png");
 
                     camera.targetTexture = null;
                     renderTexture.Release();
@@ -794,7 +517,7 @@ internal class PmxBuilder
                     Graphics.DrawMesh(mesh, Matrix4x4.identity, material, 0, camera);
                     camera.Render();
                     //GL.Flush();
-                    PmxBuilder.saveTexture(renderTexture, savePath + "/pre_dark/" + meshRenderInstanceID + "_" + material.name.Replace(" (Instance)", "") + ".png");
+                    PmxBuilder.saveTexture(renderTexture, savePath + "/pre_dark/" + smrName + "_" + material.name.Replace(" (Instance)", "") + ".png");
 
                     camera.targetTexture = null;
                     renderTexture.Release();
@@ -809,10 +532,6 @@ internal class PmxBuilder
                 }
 			}
 			Mesh.Destroy(mesh);
-		}
-		if (adjustments.Count > 0)
-		{
-			ExportDataListToJson(adjustments, "KK_UVAdjustments_" + (nowCoordinate == maxCoord ? "body" : exportedBoneInfoCount - 1) + ".json");
 		}
         GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, -100, 0));
     }
@@ -986,14 +705,16 @@ internal class PmxBuilder
 			"o_hit_kneeBR", "o_hit_kneeL", "o_hit_kneeR", "o_hit_kokan", "o_hit_legBL", "o_hit_legBR", "o_hit_legL", "o_hit_legR", "o_hit_mune", "o_hit_muneB",
 			"o_hit_siriL", "o_hit_siriR", "cf_O_face_atari"
 		};
-		SkinnedMeshRenderer[] componentsInChildren = GameObject.Find("BodyTop").transform.GetComponentsInChildren<SkinnedMeshRenderer>(includeInactive: true);
+        meshRenders.Clear();
+        SkinnedMeshRenderer[] componentsInChildren = GameObject.Find("BodyTop").transform.GetComponentsInChildren<SkinnedMeshRenderer>(includeInactive: true);
 		for (int i = 0; i < componentsInChildren.Length; i++)
 		{
 			if (((!componentsInChildren[i].enabled || !componentsInChildren[i].isVisible || source.Contains(componentsInChildren[i].name, StringComparer.Ordinal)) && (!componentsInChildren[i].enabled || !source2.Contains(componentsInChildren[i].name, StringComparer.Ordinal)) && (!exportAll || !componentsInChildren[i].enabled || source3.Contains(componentsInChildren[i].name, StringComparer.Ordinal)) && (!exportHitBoxes || !componentsInChildren[i].enabled || !source4.Contains(componentsInChildren[i].name, StringComparer.Ordinal) || nowCoordinate != maxCoord)) || (nowCoordinate < maxCoord && ignoreList.Contains(componentsInChildren[i].name, StringComparer.Ordinal) && componentsInChildren[i].sharedMaterials.Count() > 0 && ignoreList.Contains(CleanUpMaterialName(componentsInChildren[i].sharedMaterial.name), StringComparer.Ordinal)) || (nowCoordinate == maxCoord && (!ignoreList.Contains(componentsInChildren[i].name, StringComparer.Ordinal) || (ignoreList.Contains(componentsInChildren[i].name, StringComparer.Ordinal) && componentsInChildren[i].sharedMaterials.Count() > 0 && !ignoreList.Contains(CleanUpMaterialName(componentsInChildren[i].sharedMaterial.name), StringComparer.Ordinal)))))
 			{
 				continue;
 			}
-			Console.WriteLine("Exporting: " + componentsInChildren[i].name);
+            meshRenders.Add(componentsInChildren[i]);
+            Console.WriteLine("Exporting: " + componentsInChildren[i].name);
 			if (componentsInChildren[i].sharedMaterials.Count() == 0)
 			{
 				Material material = new Material(Shader.Find("Diffuse"));
@@ -1074,12 +795,14 @@ internal class PmxBuilder
 				}
 				UnityEngine.Vector3 vector = componentsInChildren[i].transform.TransformDirection(normals[l]);
 				pmxVertex.Normal = new PmxLib.Vector3(0f - vector.x, vector.y, 0f - vector.z);
-				UnityEngine.Vector3 vector2 = componentsInChildren[i].transform.TransformPointUnscaled(vertices[l]);
-				pmxVertex.Position = new PmxLib.Vector3((0f - vector2.x) * (float)scale, vector2.y * (float)scale, (0f - vector2.z) * (float)scale);
+                //UnityEngine.Vector3 vector2 = componentsInChildren[i].transform.TransformPointUnscaled(vertices[l]);
+                UnityEngine.Vector3 vector2 = componentsInChildren[i].transform.TransformPoint(vertices[l]);
+                pmxVertex.Position = new PmxLib.Vector3((0f - vector2.x) * (float)scale, vector2.y * (float)scale, (0f - vector2.z) * (float)scale);
 				pmxVertex.Deform = PmxVertex.DeformType.BDEF4;
 				pmxFile.VertexList.Add(pmxVertex);
 			}
-		}
+            Mesh.Destroy(mesh2);
+        }
 	}
 
     private PmxVertex.BoneWeight[] ConvertBoneWeight(BoneWeight unityWeight, Transform[] bones)
@@ -1429,7 +1152,8 @@ internal class PmxBuilder
 			{
 				continue;
 			}
-			Console.WriteLine("Exporting Acc: " + meshRenderer.name);
+            meshRenders.Add(meshRenderer);
+            Console.WriteLine("Exporting Acc: " + meshRenderer.name);
 			SMRData sMRData = new SMRData(this, meshRenderer);
 			AddToSMRDataList(sMRData);
 			MaterialDataComplete matData = new MaterialDataComplete(this, meshRenderer);
@@ -1555,9 +1279,20 @@ internal class PmxBuilder
 			pmxFile.BoneBackupData.Add(text, new Pmx.BackupBoneData(pmxBone2.Name, componentsInChildren[i].GetInstanceID(), pmxBone2));
 			currentBoneKeysList.Add(text, currentBoneKeysList.Count);
 			currentBonesList.Add(pmxBone2.Name);
+            editBoneInfo.Add(new BoneInfo(pmxBone2.Name, componentsInChildren[i]));
+        }
+        foreach (BoneInfo boneInfo in finalBoneInfoCache)
+        {
+			string name = GetAltBoneName(boneInfo.targetTransform);
 
-		}
-	}
+            if (!finalBoneInfo.ContainsKey(name))
+			{
+				finalBoneInfo.Add(name, boneInfo.CreateNew(name));
+			}
+            //boneInfo.rename(GetAltBoneName(boneInfo.targetTransform)); // Update the bone name to match the exported data
+        }
+		finalBoneInfoCache.Clear();
+    }
 
 	private int sbi(string name, string id)
 	{
@@ -2492,7 +2227,9 @@ internal class PmxBuilder
 		ExportDataListToJson(boneOffsetData, "KK_BoneOffsetData.json");
 		ExportDataListToJson(listInfoData, "KK_ListInfoData.json");
 		ExportChaFileCoordinateDataListToJson(chaFileCoordinateData, "KK_ChaFileCoordinateData.json");
-
+		ExportDataListToJson(editBoneInfo, "KK_EditBoneInfo.json");
+		ExportDataListToJson(finalBoneInfo.Values.ToList(), "KK_FinalBoneInfo.json");
+		ExportDataListToJson(UVAdjustments, "KK_UVAdjustments.json");
     }
 
 	public void OpenFolderInExplorer(string filename)
