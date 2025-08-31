@@ -162,6 +162,7 @@ public class PmxExpoter : BaseUnityPlugin
 			chaControl.animBody.speed = 1f;
 		}
 		builder.ExportAllDataLists();
+		builder.CleanUp();
 		//builder.testResetModel();
 		builder.OpenFolderInExplorer(builder.baseSavePath);
 		builder = null;

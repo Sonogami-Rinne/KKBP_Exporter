@@ -26,24 +26,28 @@ internal class BoneInfo
 
     private static Matrix4x4 unityToBlender = new Matrix4x4();
 
-    private static GameObject converter = new GameObject("UnityToBlenderConverter");
+    public static GameObject converter;
 
 
     public BoneInfo(string boneName, Transform transform)
     {
-
-        Transform converter = BoneInfo.converter.transform;
-        if (BoneInfo.unityToBlender.IsDefault())
+        Transform converter;
+        if (BoneInfo.converter == null)
         {
+            BoneInfo.converter = new GameObject("UnityToBlenderConverter");
             BoneInfo.unityToBlender = new Matrix4x4();
             BoneInfo.unityToBlender.SetColumn(0, new Vector4(-1, 0, 0, 0));
             BoneInfo.unityToBlender.SetColumn(1, new Vector4(0, 0, 1, 0));
             BoneInfo.unityToBlender.SetColumn(2, new Vector4(0, -1, 0, 0));
             BoneInfo.unityToBlender.SetColumn(3, new Vector4(0, 0, 0, 1));
+            converter = BoneInfo.converter.transform;
             converter.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(0, 0, 0));
             converter.localScale = Vector3.zero;
         }
-
+        else
+        {
+            converter = BoneInfo.converter.transform;
+        }
         this.targetTransform = transform;
         this.boneName = boneName;
         Vector3 position;
