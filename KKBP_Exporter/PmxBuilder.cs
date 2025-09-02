@@ -589,8 +589,8 @@ internal class PmxBuilder
 					threadLight.Join();
 					threadDark.Join();
 
-					saveTexture(lightOutput, texturewidth, textureheight, savePath + "/pre_light/" + matName + ".png");
-					saveTexture(darkOutput, texturewidth, textureheight, savePath + "/pre_dark/" + matName + ".png");
+					saveTexture(lightOutput, texturewidth, textureheight, savePath + "/pre_light/" + matName + "_light.png");
+					saveTexture(darkOutput, texturewidth, textureheight, savePath + "/pre_dark/" + matName + "_dark.png");
                 }
 				catch(Exception ex)
 				{
