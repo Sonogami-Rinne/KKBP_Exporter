@@ -83,10 +83,11 @@ public class PmxExpoter : BaseUnityPlugin
 				exportConfig.exportWithoutPhysics = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 35f, num4 * 2f, 30f), exportConfig.exportWithoutPhysics, "Export Without Physics");
 				exportConfig.exportWithPushups = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportWithPushups, "Enable Pushups");
 				exportConfig.exportHitBoxes = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportHitBoxes, "Export Hit Meshes");
-				exportConfig.exportCurrentPose = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportCurrentPose, "Freeze Current Pose");
-				exportConfig.exportLightDarkTexture = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportLightDarkTexture, "Export light dark textures");
+                exportConfig.exportCurrentPose = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportCurrentPose, "Freeze Current Pose");
+                //exportConfig.exportCurrentPose = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportCurrentPose, "Freeze Current Pose");
+                //exportConfig.exportLightDarkTexture = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportLightDarkTexture, "Export light dark textures");
 
-				if (GUI.Button(new Rect((float)Screen.width / 2f - num + horizontal_offset, 0, num * 2f, 60f), "Export Model for KKBP") && builder == null)
+                if (GUI.Button(new Rect((float)Screen.width / 2f - num + horizontal_offset, 0, num * 2f, 60f), "Export Model for KKBP") && builder == null)
 				{
 					builder = new PmxBuilder
 					{
@@ -94,7 +95,7 @@ public class PmxExpoter : BaseUnityPlugin
 						exportHitBoxes = exportConfig.exportHitBoxes,
 						exportWithEnabledShapekeys = exportConfig.exportWithEnabledShapekeys,
 						exportCurrentPose = exportConfig.exportCurrentPose,
-						expoertLightDarkTexture = exportConfig.exportLightDarkTexture
+						//expoertLightDarkTexture = exportConfig.exportLightDarkTexture
 					};
 					StartCoroutine(StartBuild());
 				}
