@@ -301,6 +301,9 @@ internal class PmxBuilder
 			camera.transform.rotation = (UnityEngine.Quaternion)recoverInfos[6];
 			camera.clearFlags = (CameraClearFlags)recoverInfos[7];
 			camera.allowMSAA = (bool)recoverInfos[8];
+
+			// Force to update
+			camera.Render();
             //recoverInfos.Add(light.gameObject.transform.position);
             //recoverInfos.Add(light.gameObject.transform.rotation);
             //recoverInfos.Add(camera.orthographic);
