@@ -302,12 +302,9 @@ internal class PmxBuilder
         {
             lights[i].enabled = true;
         }
-		// I think it's no need to recovery the scale info......
-        //foreach (BoneInfo item in finalBoneInfo.Values)
-        //{
-        //    item.targetTransform.SetLocalScale(item._scale.x, item._scale.y, item._scale.z);
-        //}
-        //finalBoneInfo.Clear();
+        finalBoneInfo.Clear();
+		editBoneInfo.Clear();
+        MakerAPI.GetCharacterControl().ChangeCoordinateTypeAndReload((ChaFileDefine.CoordinateType)(nowCoordinate - 1));
     }
     public void ExportLightTexture()
     {
@@ -494,6 +491,30 @@ internal class PmxBuilder
                     {
                         material.SetFloat("_SpecularPowerNail", 0f);
                     }
+					if (material.HasProperty("_NormalMap"))
+					{
+						material.SetTexture("_NormalMap", null);
+					}
+					if (material.HasProperty("_NormalMap_ST"))
+					{
+						material.SetTexture("_NormalMap_ST", null);
+					}
+					if (material.HasProperty("_NormalMapDetail"))
+					{
+						material.SetTexture("_NormalMapDetail", null);
+					}
+					if (material.HasProperty("_NormalMapDetail_ST"))
+					{
+						material.SetTexture("_NormalMapDetail_ST", null);
+					}
+					if (material.HasProperty("_NormalMask"))
+					{
+						material.SetTexture("_NormalMask", null);
+					}
+					if (material.HasProperty("_NormalMask_ST"))
+					{
+						material.SetTexture("_NormalMask_ST", null);
+					}
 					// Render eye hightlight or not.
                     //if (material.HasProperty("_isHighLight"))
                     //{
