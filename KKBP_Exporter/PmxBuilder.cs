@@ -166,19 +166,11 @@ internal class PmxBuilder
 
 	private Dictionary<string, int> currentBoneKeysList = new Dictionary<string, int>();
 
-	private int exportedBoneInfoCount = 0;
-
-	private Camera camera;
-
-	private GameObject tmpGampObject;
-
-	private GameObject lightGameObject;
-
-	private GameObject backLightGameObject;
-
 	private List<Renderer> meshRenders = new List<Renderer>();
 
     private List<BoneInfo> editBoneInfo = new List<BoneInfo>();
+
+	private List<object> recoverInfos = new List<object>();
 
     private Dictionary<string,BoneInfo> finalBoneInfo = new Dictionary<string, BoneInfo>();
 
@@ -292,19 +284,41 @@ internal class PmxBuilder
 
     public void CleanUp()
 	{
-		Camera.Destroy(camera);
-		GameObject.Destroy(BoneInfo.converter);
-		GameObject.Destroy(tmpGampObject);
-		GameObject.Destroy(lightGameObject);
-		GameObject.Destroy(backLightGameObject);
-        Light[] lights = Light.FindObjectsOfType<Light>();
-        for (int i = 0; i < lights.Length; i++)
-        {
-            lights[i].enabled = true;
+		try
+		{
+            GameObject.Destroy(BoneInfo.converter);
+            finalBoneInfo.Clear();
+            editBoneInfo.Clear();
+            Light light = Light.FindObjectsOfType<Light>()[0];
+            Camera camera = Camera.main;
+
+			light.gameObject.transform.position = (UnityEngine.Vector3)recoverInfos[0];
+			light.gameObject.transform.rotation = (UnityEngine.Quaternion)recoverInfos[1];
+			camera.orthographic = (bool)recoverInfos[2];
+			camera.aspect = (float)recoverInfos[3];
+			camera.orthographicSize = (float)recoverInfos[4];
+			camera.transform.position = (UnityEngine.Vector3)recoverInfos[5];
+			camera.transform.rotation = (UnityEngine.Quaternion)recoverInfos[6];
+			camera.clearFlags = (CameraClearFlags)recoverInfos[7];
+			camera.allowMSAA = (bool)recoverInfos[8];
+            //recoverInfos.Add(light.gameObject.transform.position);
+            //recoverInfos.Add(light.gameObject.transform.rotation);
+            //recoverInfos.Add(camera.orthographic);
+            //recoverInfos.Add(camera.aspect);
+            //recoverInfos.Add(camera.orthographicSize);
+            //recoverInfos.Add(camera.transform.position);
+            //recoverInfos.Add(camera.transform.rotation);
+            //recoverInfos.Add(camera.clearFlags);
+            //recoverInfos.Add(camera.allowMSAA);
         }
-        finalBoneInfo.Clear();
-		editBoneInfo.Clear();
-        MakerAPI.GetCharacterControl().ChangeCoordinateTypeAndReload((ChaFileDefine.CoordinateType)(nowCoordinate - 1));
+		catch (Exception ex)
+		{
+			Console.WriteLine(ex.Message);
+		}
+		finally
+		{
+            MakerAPI.GetCharacterControl().ChangeCoordinateTypeAndReload((ChaFileDefine.CoordinateType)(nowCoordinate - 1));
+        }
     }
     public void ExportLightTexture()
     {
@@ -318,47 +332,37 @@ internal class PmxBuilder
 		// For sure, I think nobody will do this except me.
 
 		string[] ignoredSMRs = { "cf_O_gag_eye_00", "cf_O_gag_eye_01", "cf_O_gag_eye_02", "cf_O_namida_L", "cf_O_namida_M", "cf_O_namida_S" };
-        if (camera == null)
-		{
-            tmpGampObject = new GameObject("TempCoroutineRunner");
-            lightGameObject = new GameObject("light");
-			backLightGameObject = new GameObject("backLight");
 
-            camera = lightGameObject.AddComponent<Camera>();
-            camera.CopyFrom(Camera.main);
+		UnityEngine.Vector3 position0 = new UnityEngine.Vector3(.5f, .5f, -10f);
+		UnityEngine.Vector3 position1 = new UnityEngine.Vector3(.5f, .5f, 10f);
+		UnityEngine.Vector3 position2 = new UnityEngine.Vector3(.5f, .5f, 0);
+
+		Light light = Light.FindObjectsOfType<Light>()[0];
+        Camera camera = Camera.main;
+
+		if (recoverInfos.Count == 0)
+		{
+			recoverInfos.Add(light.gameObject.transform.position);
+			recoverInfos.Add(light.gameObject.transform.rotation);
+			recoverInfos.Add(camera.orthographic);
+			recoverInfos.Add(camera.aspect);
+			recoverInfos.Add(camera.orthographicSize);
+			recoverInfos.Add(camera.transform.position);
+			recoverInfos.Add(camera.transform.rotation);
+			recoverInfos.Add(camera.clearFlags);
+			recoverInfos.Add(camera.allowMSAA);
+
             camera.orthographic = true;
             camera.aspect = 1f;
             camera.orthographicSize = 0.5f;
-            camera.transform.position = new UnityEngine.Vector3(0.5f, 0.5f, -10f);
-            camera.transform.LookAt(new UnityEngine.Vector3(0.5f, 0.5f, 0f));
+            camera.transform.position = position0;
+            camera.transform.LookAt(position2);
             camera.clearFlags = CameraClearFlags.SolidColor;
-			camera.allowMSAA = false;
+            camera.allowMSAA = false;
 
-			Light[] lights = Light.FindObjectsOfType<Light>();
-			for (int i = 0; i < lights.Length; i++)
-			{
-				lights[i].enabled = false;
-			}
-
-            Light frontLight = lightGameObject.AddComponent<Light>();
-			frontLight.name = "front";
-            frontLight.type = LightType.Directional;
-            frontLight.color = Color.white;
-            frontLight.intensity = 1.0f;
-
-			// used to create dark textures
-            Light backLight = backLightGameObject.AddComponent<Light>();
-			backLight.name = "back";
-            backLight.type = LightType.Directional;
-            backLight.color = Color.white;
-            backLight.intensity = 1.0f;
-
-            lightGameObject.transform.position = camera.transform.position;
-			lightGameObject.transform.forward = camera.transform.forward;
-
-			backLightGameObject.transform.position = new UnityEngine.Vector3(0.5f, 0.5f, 10f);
-			backLightGameObject.transform.forward = -camera.transform.forward;
-        }
+            light.gameObject.transform.position = camera.transform.position;
+            light.gameObject.transform.LookAt(position2);
+        }		
 
 		for (int i = 0; i < meshRenders.Count; i++)
 		{
@@ -392,6 +396,7 @@ internal class PmxBuilder
 			int verticalBlockCount = 1;
 			int xOffset;
 			int yOffset;
+			int layer = meshRenders[i].gameObject.layer;
 			UnityEngine.Vector3[] verts = new UnityEngine.Vector3[uvs.Length];
 
             // Transform mesh into a surface according to its uv
@@ -477,7 +482,6 @@ internal class PmxBuilder
                         textureheight = 1024 * verticalBlockCount;
                     }
                     material.SetShaderPassEnabled("OUTLINE", false);
-                    material.SetShaderPassEnabled("SHADOWCASTER", false);
 
                     if (material.HasProperty("_AlphaMask"))
                     {
@@ -530,16 +534,15 @@ internal class PmxBuilder
 					//if (material.HasProperty("_overtex3"))
 
 					// light
-                    lightGameObject.SetActive(true);
-                    backLightGameObject.SetActive(false);
-
-                    RenderTexture renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
+					light.transform.position = position0;
+					light.transform.LookAt(position2);
+					RenderTexture renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
 					renderTexture.antiAliasing = 1;
                     renderTexture.filterMode = FilterMode.Point;
                     renderTexture.Create();
                     camera.targetTexture = renderTexture;
                     camera.backgroundColor = Color.clear;
-                    Graphics.DrawMesh(mesh, Matrix4x4.identity, material, 0, camera);
+                    Graphics.DrawMesh(mesh, Matrix4x4.identity, material, layer, camera);
                     camera.Render();
 
 					RenderTexture.active = renderTexture;
@@ -557,17 +560,18 @@ internal class PmxBuilder
 					camera.targetTexture = null;
                     renderTexture.Release();
 
-                    // dark
-                    lightGameObject.SetActive(false);
-                    backLightGameObject.SetActive(true);
-
-                    renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
+					// dark
+					//lightGameObject.SetActive(false);
+					//backLightGameObject.SetActive(true);
+					light.transform.position = position1;
+					light.transform.LookAt(position2);
+					renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
 					renderTexture.antiAliasing = 1;
 					renderTexture.filterMode = FilterMode.Point;
 					renderTexture.Create();
                     camera.targetTexture = renderTexture;
                     camera.backgroundColor = Color.clear;
-                    Graphics.DrawMesh(mesh, Matrix4x4.identity, material, 0, camera);
+                    Graphics.DrawMesh(mesh, Matrix4x4.identity, material, layer, camera);
 
                     camera.Render();
 
@@ -586,7 +590,7 @@ internal class PmxBuilder
                     camera.targetTexture = null;
                     renderTexture.Release();
 
-					threadLight.Join();
+                    threadLight.Join();
 					threadDark.Join();
 
 					saveTexture(lightOutput, texturewidth, textureheight, savePath + "/pre_light/" + matName + "_light.png");
