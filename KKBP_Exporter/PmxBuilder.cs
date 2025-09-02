@@ -319,6 +319,8 @@ internal class PmxBuilder
 		GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, 100, 0));
 		// Some wired things will happen if you move main camera far away from 0,0 and export.
 		// For sure, I think nobody will do this except me.
+
+		string[] ignoredSMRs = { "cf_O_gag_eye_00", "cf_O_gag_eye_01", "cf_O_gag_eye_02", "cf_O_namida_L", "cf_O_namida_M", "cf_O_namida_S" };
         if (camera == null)
 		{
             tmpGampObject = new GameObject("TempCoroutineRunner");
@@ -333,8 +335,9 @@ internal class PmxBuilder
             camera.transform.position = new UnityEngine.Vector3(0.5f, 0.5f, -10f);
             camera.transform.LookAt(new UnityEngine.Vector3(0.5f, 0.5f, 0f));
             camera.clearFlags = CameraClearFlags.SolidColor;
+			camera.allowMSAA = false;
 
-            Light[] lights = Light.FindObjectsOfType<Light>();
+			Light[] lights = Light.FindObjectsOfType<Light>();
 			for (int i = 0; i < lights.Length; i++)
 			{
 				lights[i].enabled = false;
@@ -425,7 +428,13 @@ internal class PmxBuilder
 			string smrName = smr.name;
 
             smrName = ((ignoreList.Contains(smrName, StringComparer.Ordinal) && smr.sharedMaterials.Count() > 0 && ignoreList.Contains(PmxBuilder.CleanUpMaterialName(smr.sharedMaterial.name), StringComparer.Ordinal)) ? smrName : (smrName + " " + PmxBuilder.GetAltInstanceID(smr)));
-            UVAdjustments.Add(new UVAdjustment(smrName, PmxBuilder.GetGameObjectPath(meshRenders[i].gameObject), meshRenderInstanceID, -xOffset, -yOffset, horizontalBlockCount, verticalBlockCount));
+			if (ignoredSMRs.Contains(smrName))
+			{
+				continue;
+			}
+
+			List<string> materials = new List<string>();
+            UVAdjustments.Add(new UVAdjustment(smrName, PmxBuilder.GetGameObjectPath(meshRenders[i].gameObject), -xOffset, -yOffset, horizontalBlockCount, verticalBlockCount, materials));
 
             // Some vertices' uv position are out of the range(0,1).And how shader tile the picture determine how the mesh look like.
             // code below, force remapping them to (0,1).But if shader do not simply tile the texture, for example, if uv.x > 1 then color = black, it will fail
@@ -434,8 +443,8 @@ internal class PmxBuilder
             //             for (int j = 0; j < uvs.Length; j++)
             //             {
             //		verts[j] = new UnityEngine.Vector3(
-            //			10 + Mathf.Repeat(uvs[j].x, 1f),
-            //			10 + Mathf.Repeat(uvs[j].y, 1f),
+            //			Mathf.Repeat(uvs[j].x, 1f),
+            //			Mathf.Repeat(uvs[j].y, 1f),
             //			0f);
             //	}
             //         }
@@ -446,6 +455,15 @@ internal class PmxBuilder
 			for (int j = 0; j < meshRenders[i].materials.Length; j++)
 			{
                 Material material = new Material(meshRenders[i].materials[j]);
+
+                string matName = material.name;
+                matName = PmxBuilder.CleanUpMaterialName(matName);
+                if (matName == "Bonelyfans")
+				{
+					continue;
+				}
+                matName = ((!ignoreList.Contains(matName, StringComparer.Ordinal) || !ignoreList.Contains(smr.name, StringComparer.Ordinal)) ? (matName + " " + PmxBuilder.GetAltInstanceID(smr.transform.parent.gameObject)) : ((!matName.Contains(EyeMatName)) ? matName : (matName + "_" + smr.name)));
+				materials.Add(matName);
                 int texturewidth;
                 int textureheight;
                 try
@@ -463,7 +481,6 @@ internal class PmxBuilder
                     }
                     material.SetShaderPassEnabled("OUTLINE", false);
                     material.SetShaderPassEnabled("SHADOWCASTER", false);
-                    //material.SetShaderPassEnabled("META", false);
 
                     if (material.HasProperty("_AlphaMask"))
                     {
@@ -477,6 +494,7 @@ internal class PmxBuilder
                     {
                         material.SetFloat("_SpecularPowerNail", 0f);
                     }
+					// Render eye hightlight or not.
                     //if (material.HasProperty("_isHighLight"))
                     //{
                     //    material.SetFloat("_isHighLight", 0f);
@@ -490,20 +508,32 @@ internal class PmxBuilder
 					//if (material.HasProperty("_overtex2"))
 					//if (material.HasProperty("_overtex3"))
 
-                    // light
+					// light
                     lightGameObject.SetActive(true);
                     backLightGameObject.SetActive(false);
 
                     RenderTexture renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
+					renderTexture.antiAliasing = 1;
+                    renderTexture.filterMode = FilterMode.Point;
                     renderTexture.Create();
                     camera.targetTexture = renderTexture;
                     camera.backgroundColor = Color.clear;
                     Graphics.DrawMesh(mesh, Matrix4x4.identity, material, 0, camera);
                     camera.Render();
-                    //GL.Flush();
-                    PmxBuilder.saveTexture(renderTexture, savePath + "/pre_light/" + smrName + "_" + material.name.Replace(" (Instance)", "") + ".png");
 
-                    camera.targetTexture = null;
+					RenderTexture.active = renderTexture;
+					Texture2D _ = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
+					_.ReadPixels(new Rect(0, 0, texturewidth, textureheight), 0, 0);
+					_.Apply();
+					RenderTexture.active = null;
+
+					Color32[] lightOrig = _.GetPixels32();
+                    Color32[] lightOutput = (Color32[])lightOrig.Clone();
+					Thread threadLight = new Thread(() => ShiftAndOverlay(lightOrig, lightOutput, texturewidth, textureheight, 2));
+					threadLight.Start();
+					Texture.Destroy(_);
+
+					camera.targetTexture = null;
                     renderTexture.Release();
 
                     // dark
@@ -511,16 +541,35 @@ internal class PmxBuilder
                     backLightGameObject.SetActive(true);
 
                     renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
-                    renderTexture.Create();
+					renderTexture.antiAliasing = 1;
+					renderTexture.filterMode = FilterMode.Point;
+					renderTexture.Create();
                     camera.targetTexture = renderTexture;
                     camera.backgroundColor = Color.clear;
                     Graphics.DrawMesh(mesh, Matrix4x4.identity, material, 0, camera);
+
                     camera.Render();
-                    //GL.Flush();
-                    PmxBuilder.saveTexture(renderTexture, savePath + "/pre_dark/" + smrName + "_" + material.name.Replace(" (Instance)", "") + ".png");
+
+                    RenderTexture.active = renderTexture;
+                    _ = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
+                    _.ReadPixels(new Rect(0, 0, texturewidth, textureheight), 0, 0);
+                    _.Apply();
+                    RenderTexture.active = null;
+
+                    Color32[] darkOrig = _.GetPixels32();
+                    Color32[] darkOutput = (Color32[])lightOrig.Clone();
+                    Thread threadDark = new Thread(() => ShiftAndOverlay(darkOrig, darkOutput, texturewidth, textureheight, 2));
+					threadDark.Start();
+                    Texture.Destroy(_);
 
                     camera.targetTexture = null;
                     renderTexture.Release();
+
+					threadLight.Join();
+					threadDark.Join();
+
+					saveTexture(lightOutput, texturewidth, textureheight, savePath + "/pre_light/" + matName + ".png");
+					saveTexture(darkOutput, texturewidth, textureheight, savePath + "/pre_dark/" + matName + ".png");
                 }
 				catch(Exception ex)
 				{
@@ -535,18 +584,57 @@ internal class PmxBuilder
 		}
         GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, -100, 0));
     }
-	public static void saveTexture(RenderTexture renderTexture, string savePath)
-	{
-        RenderTexture.active = renderTexture;
-        GL.Flush();
-        Texture2D texture = new Texture2D(renderTexture.width, renderTexture.height, TextureFormat.ARGB32, false);
-        texture.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
-        texture.Apply();
-        RenderTexture.active = null;
-        byte[] bytes = texture.EncodeToPNG();
+    public static void saveTexture(Color32[] output, int width, int height ,string savePath)
+    {
+		Texture2D result = new Texture2D(width, height, TextureFormat.ARGB32, false);
+		result.SetPixels32(output);
+		result.filterMode = FilterMode.Point; // ±‹√‚∂ÓÕ‚ªÏ∫œ
+		result.wrapMode = TextureWrapMode.Clamp;
+		result.Apply();
+		byte[] bytes = result.EncodeToPNG();
         System.IO.File.WriteAllBytes(savePath, bytes);
     }
-	public void ChangeAnimations()
+
+    public static void ShiftAndOverlay(Color32[] basePixels,Color32[] output, int w, int h ,int offset)
+    {
+		// Add 4 directions' shift to original texture and mix them.Then add the original texture on it.
+        void AddShift(int dx, int dy)
+        {
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    int sx = x - dx;
+                    int sy = y - dy;
+                    if (sx >= 0 && sx < w && sy >= 0 && sy < h)
+                    {
+                        int dstIdx = y * w + x;
+                        int srcIdx = sy * w + sx;
+                        var srcColor = basePixels[srcIdx];
+
+                        if (srcColor.a > output[dstIdx].a)
+                        {
+                            output[dstIdx] = srcColor;
+                        }
+                    }
+                }
+            }
+        }
+
+        AddShift(offset, 0);  
+        AddShift(-offset, 0); 
+        AddShift(0, offset);  
+        AddShift(0, -offset); 
+
+        for (int i = 0; i < output.Length; i++)
+        {
+            if (basePixels[i].a > 242)
+            {
+                output[i] = basePixels[i];
+            }
+        }
+    }
+    public void ChangeAnimations()
 	{
 		ChaControl characterControl = MakerAPI.GetCharacterControl();
 		CustomBase makerBase = MakerAPI.GetMakerBase();
