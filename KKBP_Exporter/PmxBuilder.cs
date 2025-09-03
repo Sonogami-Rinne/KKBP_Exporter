@@ -583,7 +583,7 @@ internal class PmxBuilder
 
 					Color32[] lightOrig = _.GetPixels32();
                     Color32[] lightOutput = (Color32[])lightOrig.Clone();
-					Thread threadLight = new Thread(() => ShiftAndOverlay(lightOrig, lightOutput, texturewidth, textureheight, 3));
+					Thread threadLight = new Thread(() => ShiftAndOverlay(lightOrig, lightOutput, texturewidth, textureheight, 2));
 					threadLight.Start();
 					Texture.Destroy(_);
 
@@ -613,7 +613,7 @@ internal class PmxBuilder
 
                     Color32[] darkOrig = _.GetPixels32();
                     Color32[] darkOutput = (Color32[])lightOrig.Clone();
-                    Thread threadDark = new Thread(() => ShiftAndOverlay(darkOrig, darkOutput, texturewidth, textureheight, 3));
+                    Thread threadDark = new Thread(() => ShiftAndOverlay(darkOrig, darkOutput, texturewidth, textureheight, 2));
 					threadDark.Start();
                     Texture.Destroy(_);
 
@@ -675,10 +675,10 @@ internal class PmxBuilder
                 }
             }
         }
-		AddShift(offset, offset);
-		AddShift(offset, -offset);
-		AddShift(-offset, -offset);
-		AddShift(-offset, offset);
+		//AddShift(offset, offset);
+		//AddShift(offset, -offset);
+		//AddShift(-offset, -offset);
+		//AddShift(-offset, offset);
         AddShift(offset, 0);  
         AddShift(-offset, 0); 
         AddShift(0, offset);  
