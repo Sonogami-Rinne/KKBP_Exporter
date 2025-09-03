@@ -269,7 +269,7 @@ internal class PmxBuilder
 	public void PrepareModel()
 	{
         Transform transform = GameObject.Find("BodyTop").transform;
-        Transform[] componentsInChildren = transform.GetComponentsInChildren<Transform>();
+        Transform[] componentsInChildren = transform.GetComponentsInChildren<Transform>(includeInactive: true);
 
 		finalBoneInfoCache.Clear();
         foreach (Transform component in componentsInChildren)
@@ -289,21 +289,29 @@ internal class PmxBuilder
             GameObject.Destroy(BoneInfo.converter);
             finalBoneInfo.Clear();
             editBoneInfo.Clear();
-            Light light = Light.FindObjectsOfType<Light>()[0];
-            Camera camera = Camera.main;
+            if (expoertLightDarkTexture)
+			{
+                Light light = Light.FindObjectsOfType<Light>()[0];
+                Camera camera = Camera.main;
 
-			light.gameObject.transform.position = (UnityEngine.Vector3)recoverInfos[0];
-			light.gameObject.transform.rotation = (UnityEngine.Quaternion)recoverInfos[1];
-			camera.orthographic = (bool)recoverInfos[2];
-			camera.aspect = (float)recoverInfos[3];
-			camera.orthographicSize = (float)recoverInfos[4];
-			camera.transform.position = (UnityEngine.Vector3)recoverInfos[5];
-			camera.transform.rotation = (UnityEngine.Quaternion)recoverInfos[6];
-			camera.clearFlags = (CameraClearFlags)recoverInfos[7];
-			camera.allowMSAA = (bool)recoverInfos[8];
+                light.transform.position = (UnityEngine.Vector3)recoverInfos[0];
+                light.transform.rotation = (UnityEngine.Quaternion)recoverInfos[1];
+                camera.orthographic = (bool)recoverInfos[2];
+                camera.aspect = (float)recoverInfos[3];
+                camera.orthographicSize = (float)recoverInfos[4];
+                camera.transform.position = (UnityEngine.Vector3)recoverInfos[5];
+                camera.transform.rotation = (UnityEngine.Quaternion)recoverInfos[6];
+                camera.clearFlags = (CameraClearFlags)recoverInfos[7];
+                camera.allowMSAA = (bool)recoverInfos[8];
+                recoverInfos.Clear();
 
-			// Force to update
-			camera.Render();
+				//However, the light object could not be restored properly somehow, so set the value directly
+				light.transform.position = new UnityEngine.Vector3(0, 0, 1);
+				light.transform.LookAt(new UnityEngine.Vector3(0, 0, 0));
+            }
+
+
+
             //recoverInfos.Add(light.gameObject.transform.position);
             //recoverInfos.Add(light.gameObject.transform.rotation);
             //recoverInfos.Add(camera.orthographic);
@@ -345,8 +353,8 @@ internal class PmxBuilder
 
 		if (recoverInfos.Count == 0)
 		{
-			recoverInfos.Add(light.gameObject.transform.position);
-			recoverInfos.Add(light.gameObject.transform.rotation);
+			recoverInfos.Add(light.transform.position);
+			recoverInfos.Add(light.transform.rotation);
 			recoverInfos.Add(camera.orthographic);
 			recoverInfos.Add(camera.aspect);
 			recoverInfos.Add(camera.orthographicSize);
@@ -363,8 +371,8 @@ internal class PmxBuilder
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.allowMSAA = false;
 
-            light.gameObject.transform.position = camera.transform.position;
-            light.gameObject.transform.LookAt(position2);
+            light.transform.position = camera.transform.position;
+            light.transform.LookAt(position2);
         }		
 
 		for (int i = 0; i < meshRenders.Count; i++)
@@ -439,7 +447,9 @@ internal class PmxBuilder
 			}
 
 			List<string> materials = new List<string>();
-            UVAdjustments.Add(new UVAdjustment(smrName, PmxBuilder.GetGameObjectPath(meshRenders[i].gameObject), -xOffset, -yOffset, horizontalBlockCount, verticalBlockCount, materials));
+			List<int> alphaMaskAStage = new List<int>();
+			List<int> alphaMaskBStage = new List<int>();
+            UVAdjustments.Add(new UVAdjustment(smrName, PmxBuilder.GetGameObjectPath(meshRenders[i].gameObject), -xOffset, -yOffset, horizontalBlockCount, verticalBlockCount, materials, alphaMaskAStage, alphaMaskBStage));
 
             // Some vertices' uv position are out of the range(0,1).And how shader tile the picture determine how the mesh look like.
             // code below, force remapping them to (0,1).But if shader do not simply tile the texture, for example, if uv.x > 1 then color = black, it will fail
@@ -490,10 +500,27 @@ internal class PmxBuilder
                     {
                         material.SetTexture("_AlphaMask", null);
                     }
-                    if (material.HasProperty("_SpecularPower"))
+					if (material.HasProperty("_alpha_a"))
+					{
+						alphaMaskAStage.Add((int)material.GetFloat("_alpha_a"));
+					}
+					else
+					{
+						alphaMaskAStage.Add(-1);
+					}
+                    if (material.HasProperty("_alpha_b"))
                     {
-                        material.SetFloat("_SpecularPower", 0f);
+                        alphaMaskBStage.Add((int)material.GetFloat("_alpha_b"));
                     }
+                    else
+                    {
+                        alphaMaskBStage.Add(-1);
+                    }
+
+                    if (material.HasProperty("_SpecularPower"))
+					{
+						material.SetFloat("_SpecularPower", 0f);
+					}
                     if (material.HasProperty("_SpecularPowerNail"))
                     {
                         material.SetFloat("_SpecularPowerNail", 0f);
@@ -556,7 +583,7 @@ internal class PmxBuilder
 
 					Color32[] lightOrig = _.GetPixels32();
                     Color32[] lightOutput = (Color32[])lightOrig.Clone();
-					Thread threadLight = new Thread(() => ShiftAndOverlay(lightOrig, lightOutput, texturewidth, textureheight, 2));
+					Thread threadLight = new Thread(() => ShiftAndOverlay(lightOrig, lightOutput, texturewidth, textureheight, 3));
 					threadLight.Start();
 					Texture.Destroy(_);
 
@@ -586,7 +613,7 @@ internal class PmxBuilder
 
                     Color32[] darkOrig = _.GetPixels32();
                     Color32[] darkOutput = (Color32[])lightOrig.Clone();
-                    Thread threadDark = new Thread(() => ShiftAndOverlay(darkOrig, darkOutput, texturewidth, textureheight, 2));
+                    Thread threadDark = new Thread(() => ShiftAndOverlay(darkOrig, darkOutput, texturewidth, textureheight, 3));
 					threadDark.Start();
                     Texture.Destroy(_);
 
@@ -648,7 +675,10 @@ internal class PmxBuilder
                 }
             }
         }
-
+		AddShift(offset, offset);
+		AddShift(offset, -offset);
+		AddShift(-offset, -offset);
+		AddShift(-offset, offset);
         AddShift(offset, 0);  
         AddShift(-offset, 0); 
         AddShift(0, offset);  
@@ -656,7 +686,7 @@ internal class PmxBuilder
 
         for (int i = 0; i < output.Length; i++)
         {
-            if (basePixels[i].a > 242)
+            if (basePixels[i].a > 250 )
             {
                 output[i] = basePixels[i];
             }
