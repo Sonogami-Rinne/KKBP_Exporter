@@ -345,8 +345,6 @@ internal class PmxBuilder
 
 		string[] ignoredSMRs = { "cf_O_gag_eye_00", "cf_O_gag_eye_01", "cf_O_gag_eye_02", "cf_O_namida_L", "cf_O_namida_M", "cf_O_namida_S", "Highlight_o_body_a_rend", "Highlight_cf_O_face_rend" };
 
-		UnityEngine.Vector3 forward = new UnityEngine.Vector3(0, 0, -1);
-
 		// Use the main camera and light directly instead of create new one to refuse some wierd render bugs
 		Light light = Light.FindObjectsOfType<Light>()[0];// The scene has only one light.But I'm failed to get the light by its name
         Camera camera = Camera.main;
@@ -435,6 +433,22 @@ internal class PmxBuilder
                 minY = Mathf.Min(minY, uvs[j].y);
                 maxY = Mathf.Max(maxY, uvs[j].y);
             }
+
+			var triangles = mesh.triangles;
+			for(int j = 0; j < triangles.Length; j+=3)
+			{
+				var v0 = verts[triangles[j]];
+				var v1 = verts[triangles[j + 1]];
+				var v2 = verts[triangles[j + 2]];
+
+				if (UnityEngine.Vector3.Cross(v1 - v0, v2 - v0).z > 0)
+				{
+					var tmp = triangles[j + 1];
+					triangles[j + 1] = triangles[j + 2];
+					triangles[j + 2] = tmp;
+				}
+			}
+
             mesh.vertices = verts;
             mesh.RecalculateBounds();
             mesh.RecalculateNormals();
@@ -460,78 +474,6 @@ internal class PmxBuilder
             camera.orthographicSize = verticalBlockCount / 2.0f;
             camera.aspect = (float)horizontalBlockCount / verticalBlockCount;
 
-			//If the surface has different normals among its faces, then we should separate the back side to render independently
-            KeyValuePair<Mesh, Mesh> separateMeshByNormal(Mesh mesh)
-			{
-                UnityEngine.Vector3[] vertices = mesh.vertices;
-                int[] triangles = mesh.triangles;
-
-                List<int> backSideTriangles = new List<int>();
-				bool frontFlag = true;
-
-                for (int i = 0; i < triangles.Length; i += 3)
-                {
-                    UnityEngine.Vector3 v0 = vertices[triangles[i]];
-                    UnityEngine.Vector3 v1 = vertices[triangles[i + 1]];
-                    UnityEngine.Vector3 v2 = vertices[triangles[i + 2]];
-
-                    UnityEngine.Vector3 normal = UnityEngine.Vector3.Cross(v1 - v0, v2 - v0).normalized;
-				
-					if (normal.z > 0)
-					{
-						backSideTriangles.AddRange(new int[] { triangles[i], triangles[i + 1], triangles[i + 2] });
-                    }
-					else
-					{
-						frontFlag = false;
-					}
-                }
-				if (backSideTriangles.Count == 0)
-				{
-					return new KeyValuePair<Mesh, Mesh> (mesh, null);
-				}
-				else if (frontFlag)
-				{
-					return new KeyValuePair<Mesh, Mesh> (null, mesh);
-				}
-				else
-				{
-					HashSet<int> uniqueVertices = new HashSet<int>();
-					foreach (int idx in backSideTriangles)
-					{
-						uniqueVertices.Add(idx);
-					}
-					List<int> vertexMap = new List<int>(uniqueVertices);
-					vertexMap.Sort();
-
-					UnityEngine.Vector3[] newVertices = new UnityEngine.Vector3[vertexMap.Count];
-					for (int j = 0; j < vertexMap.Count; j++)
-					{
-						newVertices[j] = vertices[vertexMap[j]];
-					}
-
-					int[] newTriangles = new int[backSideTriangles.Count];
-					for (int j = 0; j < backSideTriangles.Count; j++)
-					{
-						newTriangles[j] = vertexMap.IndexOf(backSideTriangles[j]);
-					}
-
-					Mesh separatedMesh = new Mesh();
-					separatedMesh.vertices = newVertices;
-					separatedMesh.triangles = newTriangles;
-					separatedMesh.RecalculateNormals();
-					separatedMesh.RecalculateBounds();
-
-					for(int j = 0; j < mesh.normals.Length; ++j)
-					{
-						mesh.normals[j] = forward;
-					}
-
-					return new KeyValuePair<Mesh, Mesh>(mesh, separatedMesh);
-				}
-            }
-			
-			var meshes = separateMeshByNormal(mesh);
 
 			for (int j = 0; j < meshRenders[i].materials.Length; j++)
 			{
@@ -620,57 +562,18 @@ internal class PmxBuilder
                     {
                         material.SetFloat("_nip_specular", 0f);
                     }
-
-
-					Color32[] lightColor = new Color32[texturewidth * textureheight];
-					Color32[] darkColor = new Color32[lightColor.Length];
-                    Thread lightThread = null;
-					Thread darkThread = null;
-
-					//light
-					if (meshes.Key != null)
+					if (material.HasProperty("_Cutoff"))
 					{
-						render(positionFront, positionFront, meshes.Key, lightColor);
+						material.SetFloat("_Cutoff", 0);
 					}
-					if (meshes.Value != null)
-					{
-						Console.WriteLine("no");
-						Color32[] lightBack = new Color32[textureheight * texturewidth];
-						render(positionBack, positionBack, meshes.Value, lightBack);
-						lightThread = new Thread(() => 
-						{ 
-							Merge(lightColor, lightBack, texturewidth, textureheight);
-							lightBack = null;
-							ShiftAndOverlay(lightColor, texturewidth, textureheight, 2);
-						});
-					}
-					else
-					{
-						lightThread = new Thread(() => ShiftAndOverlay(lightColor, texturewidth, textureheight, 2));
-					}
+
+					Color32[] lightColor = render(positionFront);
+					Thread lightThread = new Thread(() => shiftAndOverlay(lightColor, 2));
 					lightThread.Start();
 
-					//dark
-                    if (meshes.Key != null)
-                    {
-                        render(positionBack, positionFront, meshes.Key, darkColor);
-                    }
-                    if (meshes.Value != null)
-                    {
-                        Color32[] darkBack = new Color32[textureheight * texturewidth];
-                        render(positionFront, positionBack, meshes.Value, darkBack);
-                        darkThread = new Thread(() =>
-                        {
-                            Merge(darkColor, darkBack, texturewidth, textureheight);
-                            darkBack = null;
-                            ShiftAndOverlay(darkColor, texturewidth, textureheight, 2);
-                        });
-                    }
-                    else
-                    {
-                        darkThread = new Thread(() => ShiftAndOverlay(darkColor, texturewidth, textureheight, 2));
-                    }
-                    darkThread.Start();
+					Color32[] darkColor = render(positionBack);
+					Thread darkThread = new Thread(() => shiftAndOverlay(darkColor, 2));
+					darkThread.Start();
 
 					lightThread.Join();
 					darkThread.Join();
@@ -678,12 +581,10 @@ internal class PmxBuilder
 					saveTexture(lightColor, texturewidth, textureheight, savePath + "/pre_light/" + matName + "_light.png");
 					saveTexture(darkColor, texturewidth, textureheight, savePath + "/pre_dark/" + matName + "_dark.png");
 
-					void render(UnityEngine.Vector3 lightPosition, UnityEngine.Vector3 cameraPosition, Mesh mesh, Color32[] output)
+                    Color32[] render(UnityEngine.Vector3 lightPosition)
 					{
 						light.transform.position = lightPosition;
-						light.transform.LookAt(positionLookAt);
-						camera.transform.position = cameraPosition;
-						camera.transform.LookAt(positionLookAt);
+						light.transform.LookAt(UnityEngine.Vector3.zero);
 
 						RenderTexture renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
 						renderTexture.antiAliasing = 1;
@@ -700,15 +601,57 @@ internal class PmxBuilder
 						_.Apply();
 						RenderTexture.active = null;
 						var data = _.GetPixels32();
-						for (int i = 0; i < data.Length; i++)
-						{
-							output[i] = data[i];
-						}
 						//Thread thread = new Thread(() => ShiftAndOverlay(orig, output, texturewidth, textureheight, 2));
 						Texture.Destroy(_);
 						camera.targetTexture = null;
 						renderTexture.Release();
+						return data;
 					}
+                    
+					void shiftAndOverlay(Color32[] color, int offset)
+                    {
+                        var basePixels = new Color32[color.Length];
+                        Array.Copy(color, basePixels, color.Length);
+                        // Add 4 directions' shift to original texture and mix them.Then add the original texture on it.
+                        void AddShift(int dx, int dy)
+                        {
+                            for (int y = 0; y < textureheight; y++)
+                            {
+                                for (int x = 0; x < texturewidth; x++)
+                                {
+                                    int sx = x - dx;
+                                    int sy = y - dy;
+                                    if (sx >= 0 && sx < texturewidth && sy >= 0 && sy < textureheight)
+                                    {
+                                        int dstIdx = y * texturewidth + x;
+                                        int srcIdx = sy * texturewidth + sx;
+                                        var srcColor = basePixels[srcIdx];
+
+                                        if (srcColor.a > color[dstIdx].a)
+                                        {
+                                            color[dstIdx] = srcColor;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        //AddShift(offset, offset);
+                        //AddShift(offset, -offset);
+                        //AddShift(-offset, -offset);
+                        //AddShift(-offset, offset);
+                        AddShift(offset, 0);
+                        AddShift(-offset, 0);
+                        AddShift(0, offset);
+                        AddShift(0, -offset);
+
+                        for (int i = 0; i < color.Length; i++)
+                        {
+                            if (basePixels[i].a > 250)
+                            {
+                                color[i] = basePixels[i];
+                            }
+                        }
+                    }
                 }
 				catch(Exception ex)
 				{
@@ -720,10 +663,6 @@ internal class PmxBuilder
                 }
 			}
 			Mesh.Destroy(mesh);
-			if (meshes.Value != null)
-			{
-				Mesh.Destroy(meshes.Value);
-			}
 		}
         GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, -100, 0));
     }
@@ -738,66 +677,7 @@ internal class PmxBuilder
         System.IO.File.WriteAllBytes(savePath, bytes);
     }
 
-	public static void Merge(Color32[] front, Color32[] back, int texturewidth, int textureheight)
-    {
-        for (int y = 0; y < textureheight; y++)
-        {
-            for (int x = 0; x < texturewidth; x++)
-            {
-                int flippedX = texturewidth - 1 - x;
-                int backIndex = y * texturewidth + flippedX;
-                int frontIndex = y * texturewidth + x;
-                if (back[backIndex].a > 0)
-                {
-                    front[frontIndex] = back[backIndex];
-                }
-            }
-        }
-    }
-    public static void ShiftAndOverlay(Color32[] color, int w, int h ,int offset)
-    {
-		var basePixels = new Color32[color.Length];
-		Array.Copy(color, basePixels, color.Length);
-		// Add 4 directions' shift to original texture and mix them.Then add the original texture on it.
-        void AddShift(int dx, int dy)
-        {
-            for (int y = 0; y < h; y++)
-            {
-                for (int x = 0; x < w; x++)
-                {
-                    int sx = x - dx;
-                    int sy = y - dy;
-                    if (sx >= 0 && sx < w && sy >= 0 && sy < h)
-                    {
-                        int dstIdx = y * w + x;
-                        int srcIdx = sy * w + sx;
-                        var srcColor = basePixels[srcIdx];
-
-                        if (srcColor.a > color[dstIdx].a)
-                        {
-                            color[dstIdx] = srcColor;
-                        }
-                    }
-                }
-            }
-        }
-		//AddShift(offset, offset);
-		//AddShift(offset, -offset);
-		//AddShift(-offset, -offset);
-		//AddShift(-offset, offset);
-        AddShift(offset, 0);  
-        AddShift(-offset, 0); 
-        AddShift(0, offset);  
-        AddShift(0, -offset); 
-
-        for (int i = 0; i < color.Length; i++)
-        {
-            if (basePixels[i].a > 250 )
-            {
-                color[i] = basePixels[i];
-            }
-        }
-    }
+    //public static 
     public void ChangeAnimations()
 	{
 		ChaControl characterControl = MakerAPI.GetCharacterControl();
