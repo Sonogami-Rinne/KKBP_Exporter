@@ -1,5 +1,4 @@
 using Accessory_States;
-using ADV.Commands.Chara;
 using ChaCustom;
 using IllusionUtility.SetUtility;
 using KKAPI.Maker;
@@ -99,8 +98,6 @@ internal class PmxBuilder
 
 	public bool exportCurrentPose;
 
-	public bool expoertLightDarkTexture;
-
 	public static int minCoord;
 
 	public static int maxCoord;
@@ -178,6 +175,12 @@ internal class PmxBuilder
 
     private List<Renderer> meshRenders = new List<Renderer>();
 
+	private GameObject textureCapturerForFailedShader;
+
+	public bool exportLightDarkTexture = false;
+
+	private List<UVAdjustment> uvAdjustments = new List<UVAdjustment>();
+
     public string BuildStart()
 	{
 		try
@@ -200,8 +203,11 @@ internal class PmxBuilder
 			CreateInstanceIDs();
 			SetSavePath();
 			Directory.CreateDirectory(savePath);
-			Directory.CreateDirectory(savePath + "/pre_light");
-			Directory.CreateDirectory(savePath + "/pre_dark");
+			if (exportLightDarkTexture)
+			{
+                Directory.CreateDirectory(savePath + "/pre_light");
+                Directory.CreateDirectory(savePath + "/pre_dark");
+            }
 			if (!exportWithEnabledShapekeys)
 			{
 				ClearMorphs();
@@ -221,7 +227,10 @@ internal class PmxBuilder
 				ExportGagEyes();
 			}
 			AddAccessory();
-			ExportLightTexture();
+			if (exportLightDarkTexture)
+			{
+                ExportLightTexture();
+            }
             ExportSpecialTextures();
 			if (nowCoordinate < maxCoord)
 			{
@@ -283,7 +292,30 @@ internal class PmxBuilder
             GameObject.Destroy(BoneInfo.converter);
             finalBoneInfo.Clear();
             editBoneInfo.Clear();
+			uvAdjustments.Clear();
+
+			if (exportLightDarkTexture)
+			{
+                GameObject light = Light.FindObjectsOfType<Light>()[0].gameObject;
+                Camera camera = Camera.main;
+
+                light.transform.rotation = (UnityEngine.Quaternion)recoverInfos[0];
+                camera.orthographic = (bool)recoverInfos[1];
+                camera.aspect = (float)recoverInfos[2];
+                camera.orthographicSize = (float)recoverInfos[3];
+                camera.transform.position = (UnityEngine.Vector3)recoverInfos[4];
+                camera.transform.rotation = (UnityEngine.Quaternion)recoverInfos[5];
+                camera.clearFlags = (CameraClearFlags)recoverInfos[6];
+                camera.allowMSAA = (bool)recoverInfos[7];
+
+				recoverInfos.Clear();
+                GameObject.Destroy(textureCapturerForFailedShader);
+			}
         }
+		catch(Exception ex)
+		{
+			Console.WriteLine("Error when cleaning up, reason:" + ex.Message);
+		}
 		finally
 		{
             MakerAPI.GetCharacterControl().ChangeCoordinateTypeAndReload((ChaFileDefine.CoordinateType)(nowCoordinate - 1));
@@ -296,10 +328,17 @@ internal class PmxBuilder
 		// If that occur, we should walk through all the triangle faces, collect data and then combine them into a entire one.
 		// However, it seems to be impossible to happen, because this means the color will change if we simply adjust character's height.
 
-		GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, 100, 0));
-        // Some wired things will happen if you move main camera far away from 0,0 and export.
-        // For sure, I think nobody will do this except me.
-        string[] ignoredSMRs = { "cf_O_gag_eye_00", "cf_O_gag_eye_01", "cf_O_gag_eye_02", "cf_O_namida_L", "cf_O_namida_M", "cf_O_namida_S", "Highlight_o_body_a_rend", "Highlight_cf_O_face_rend", "o_Mask" };
+        GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, 10, 0));
+		GameObject floorBar = GameObject.Find("Floor bar indicator");
+		floorBar.SetActive(false);
+		// Some wired things will happen if you move main camera far away from 0,0 and export.
+		// For sure, I think nobody will do this except me.
+		string[] ignoredSMRs = { "cf_O_gag_eye_00", "cf_O_gag_eye_01", "cf_O_gag_eye_02", "cf_O_namida_L", "cf_O_namida_M", "cf_O_namida_S", "Highlight_o_body_a_rend", "Highlight_cf_O_face_rend", "o_Mask" };
+		string[] failedShaderType1 = { "Shader Forge/main_hair_front" };
+		Dictionary<string, string> failedShaderType2 = new Dictionary<string, string>()
+		{
+			{"KKUTShair", "Shader Forge/main_hair" }
+		};
         // Use the main camera and light directly instead of create new one to refuse some wierd render bugs
         GameObject light = Light.FindObjectsOfType<Light>()[0].gameObject;// The scene has only one light.But I'm failed to get the light by its name
         Camera camera = Camera.main;
@@ -308,7 +347,7 @@ internal class PmxBuilder
 
 		if (recoverInfos.Count == 0)
 		{
-			recoverInfos.Add(light.gameObject.transform.position);
+			recoverInfos.Add(light.transform.rotation);
 			recoverInfos.Add(camera.orthographic);
 			recoverInfos.Add(camera.aspect);
 			recoverInfos.Add(camera.orthographicSize);
@@ -317,11 +356,17 @@ internal class PmxBuilder
 			recoverInfos.Add(camera.clearFlags);
 			recoverInfos.Add(camera.allowMSAA);
 
-            camera.orthographic = true;
-            camera.aspect = 1f;
+			camera.orthographic = true;
+			camera.aspect = 1f;
 
-            camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.allowMSAA = false;
+			camera.clearFlags = CameraClearFlags.SolidColor;
+			camera.allowMSAA = false;
+
+			textureCapturerForFailedShader = new GameObject("Texture Capturer For Fialed Shader");
+			textureCapturerForFailedShader.AddComponent<MeshFilter>();
+			textureCapturerForFailedShader.AddComponent<MeshRenderer>();
+
+			textureCapturerForFailedShader.SetActive(false);
         }		
 
 		for (int i = 0; i < meshRenders.Count; i++)
@@ -343,7 +388,7 @@ internal class PmxBuilder
 			{
 				continue;
 			}
-
+			Console.WriteLine("Exporting textures for " + smr.name);
             Mesh mesh = new Mesh();
 			LightProbeUsage probeUsage;
 			Transform probeAnchor;
@@ -364,13 +409,25 @@ internal class PmxBuilder
 			{
 				MeshFilter meshFilter = smr.gameObject.GetComponent<MeshFilter>();
 				var _tmp = (MeshRenderer)smr;
-				mesh = UnityEngine.Object.Instantiate(meshFilter.sharedMesh);
+				if (meshFilter.mesh != null)
+				{
+					mesh = UnityEngine.Object.Instantiate(meshFilter.mesh);
+				}
+				else
+				{
+					mesh = UnityEngine.Object.Instantiate(meshFilter.sharedMesh);
+				}
 				probeUsage = _tmp.lightProbeUsage;
                 probeAnchor = _tmp.probeAnchor;
                 probeCastingMode = _tmp.shadowCastingMode;
                 receiveShadow = _tmp.receiveShadows;
                 _tmp.GetPropertyBlock(materialPropertyBlock);
+
             }
+			if (probeAnchor != null)
+			{
+				Console.WriteLine(probeAnchor.position + " " + probeAnchor.forward);
+			}
 
             UnityEngine.Vector2[] uvs = mesh.uv;
 			if (uvs.Length == 0)
@@ -391,7 +448,6 @@ internal class PmxBuilder
 			int yOffset;
 			int layer = smr.gameObject.layer;// Do not forget to drawmesh in this layer
 			UnityEngine.Vector3[] verts = new UnityEngine.Vector3[uvs.Length];
-
             // Transform mesh into a surface according to its uv
             float minX = float.PositiveInfinity;
             float minY = float.PositiveInfinity;
@@ -411,7 +467,7 @@ internal class PmxBuilder
             horizontalBlockCount = (int)Math.Ceiling(maxX) - xOffset;
             verticalBlockCount = (int)Math.Ceiling(maxY) - yOffset;
 
-            // Correct triangle if its normal direction is not negative z
+            // Correct triangle if its normal direction is not positive z
             var triangles = mesh.triangles;
 			for(int j = 0; j < triangles.Length; j+=3)
 			{
@@ -427,6 +483,8 @@ internal class PmxBuilder
 				}
 			}
 
+			uvIslandSolver(triangles, verts);
+
             mesh.vertices = verts;
             mesh.RecalculateBounds();
             mesh.RecalculateNormals();
@@ -435,20 +493,20 @@ internal class PmxBuilder
             List<string> materials = new List<string>();
             List<int> alphaMaskAStage = new List<int>();
             List<int> alphaMaskBStage = new List<int>();
-            //UVAdjustments.Add(new UVAdjustment(smrName, PmxBuilder.GetGameObjectPath(meshRenders[i].gameObject), -xOffset, -yOffset, horizontalBlockCount, verticalBlockCount, materials, alphaMaskAStage, alphaMaskBStage));
+			uvAdjustments.Add(new UVAdjustment(smrName, PmxBuilder.GetGameObjectPath(meshRenders[i].gameObject), -xOffset, -yOffset, horizontalBlockCount, verticalBlockCount, materials, alphaMaskAStage, alphaMaskBStage));
 
-            var positionFront = new UnityEngine.Vector3(-xOffset - horizontalBlockCount / 2.0f, yOffset + verticalBlockCount / 2.0f, 1f);
+            var positionFront = new UnityEngine.Vector3(-xOffset - horizontalBlockCount / 2.0f, yOffset + verticalBlockCount / 2.0f, 10f);
             var positionLookAt = new UnityEngine.Vector3(positionFront.x, positionFront.y, 0f);
 
-            camera.orthographicSize = verticalBlockCount / 2.0f;
-            camera.aspect = (float)horizontalBlockCount / verticalBlockCount;
+			camera.orthographicSize = verticalBlockCount / 2.0f;
+			camera.aspect = (float)horizontalBlockCount / verticalBlockCount;
 			camera.transform.position = positionFront;
 			camera.transform.LookAt(positionLookAt);
 
-
 			for (int j = 0; j < meshRenders[i].materials.Length; j++)
 			{
-				Material material = new Material(meshRenders[i].materials[j]);
+                if (meshRenders[i].materials[j] == null) continue;
+                Material material = new Material(meshRenders[i].materials[j]);
 
                 string matName = material.name;
                 matName = PmxBuilder.CleanUpMaterialName(matName);
@@ -535,13 +593,74 @@ internal class PmxBuilder
 						material.SetFloat("_nip_specular", 0f);
 					}
 
-					Color32[] lightColor = render(lightRotation);
-					Thread lightThread = new Thread(() => shiftAndOverlay(lightColor, 2));
-					lightThread.Start();
 
-					Color32[] darkColor = render(darkRotation);
-					Thread darkThread = new Thread(() => shiftAndOverlay(darkColor, 2));
-					darkThread.Start();
+					var shaderName = material.shader.name;
+
+					Color32[] lightColor;
+					Color32[] darkColor;
+					Thread lightThread;
+					Thread darkThread;
+
+                    if (failedShaderType2.ContainsKey(shaderName))
+                    {
+                        Console.WriteLine("Type 2 shader detected, changing shader");
+                        Shader shader = null;
+                        var targetName = failedShaderType2[shaderName];
+                        //Shader.Find() failed somehow
+                        foreach (var _ in Resources.FindObjectsOfTypeAll<Shader>())
+                        {
+                            if (_.name == targetName)
+                            {
+                                shader = _;
+                                break;
+                            }
+                        }
+                        if (shader == null)
+                        {
+                            Console.WriteLine("Shader not found" + failedShaderType2[shaderName]);
+                        }
+                        material.shader = shader;
+                        material.renderQueue = 2000;
+						shaderName = failedShaderType2[shaderName];
+                    }
+
+                    if (failedShaderType1.Contains(shaderName))
+					{
+						Console.WriteLine("Type 1 shader detected");
+                        //I was shocked too when finding this.
+                        camera.transform.SetPosition(positionFront.x, positionFront.y, -positionFront.z);
+						camera.transform.LookAt(positionLookAt);
+						camera.transform.hasChanged = true;
+
+						lightColor = render(darkRotation);
+						lightThread = new Thread(() =>
+						 {
+							 reverseImage(lightColor);
+							 shiftAndOverlay(lightColor, 2);
+
+						 });
+						lightThread.Start();
+
+						darkColor = render(lightRotation);
+						darkThread = new Thread(() =>
+						 {
+							 reverseImage(darkColor);
+							 shiftAndOverlay(darkColor, 2);
+
+						 });
+						darkThread.Start();
+					}
+					else
+					{
+                        lightColor = render(lightRotation);
+                        lightThread = new Thread(() => shiftAndOverlay(lightColor, 2));
+                        lightThread.Start();
+
+                        darkColor = render(darkRotation);
+                        darkThread = new Thread(() => shiftAndOverlay(darkColor, 2));
+                        darkThread.Start();
+                    }
+
 
 					lightThread.Join();
 					darkThread.Join();
@@ -574,8 +693,49 @@ internal class PmxBuilder
 						renderTexture.Release();
 						return data;
 					}
-                    
-					void shiftAndOverlay(Color32[] color, int offset)
+
+					Color32[] renderDirectly(UnityEngine.Quaternion rotation)
+					{
+                        light.transform.rotation = rotation;
+                        GL.Flush();
+
+                        RenderTexture renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
+                        renderTexture.antiAliasing = 1;
+                        renderTexture.filterMode = FilterMode.Point;
+                        renderTexture.Create();
+						camera.targetTexture = renderTexture;                
+                        camera.Render();
+                        RenderTexture.active = renderTexture;
+                        Texture2D _ = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
+                        _.ReadPixels(new Rect(0, 0, texturewidth, textureheight), 0, 0);
+                        _.Apply();
+                        RenderTexture.active = null;
+                        var data = _.GetPixels32();
+                        Texture.Destroy(_);
+                        camera.targetTexture = null;
+                        renderTexture.Release();
+                        return data;
+                    }
+
+                    void reverseImage(Color32[] color)
+                    {
+						// Reverse image horizontally.
+						int offset = 0;
+                        for (int y = 0; y < textureheight; y++)
+                        {
+                            for (int x = 0; x < texturewidth / 2; x++)
+                            {
+                                int leftIndex = offset + x;
+                                int rightIndex = offset + (texturewidth - 1 - x);
+
+                                Color32 temp = color[leftIndex];
+                                color[leftIndex] = color[rightIndex];
+                                color[rightIndex] = temp;
+                            }
+                            offset += texturewidth;
+                        }
+                    }
+                    void shiftAndOverlay(Color32[] color, int offset)
                     {
 						//To fix that color around the edge of UV island will be mixed with background color(transparent)
                         var basePixels = new Color32[color.Length];
@@ -610,6 +770,7 @@ internal class PmxBuilder
 
                         for (int i = 0; i < color.Length; i++)
                         {
+							// Put the original material to the top.If the extended color area covers other UV islands, use this to fix. 
                             if (basePixels[i].a > 250)
                             {
                                 color[i] = basePixels[i];
@@ -634,12 +795,120 @@ internal class PmxBuilder
 				}
 				finally
 				{
-                    Material.Destroy(material);
+					if (material != null)
+					{
+                        Material.Destroy(material);
+					}
                 }
 			}
-			Mesh.Destroy(mesh);
+			if (mesh != null)
+			{
+                Mesh.Destroy(mesh);
+            }
 		}
-        GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, -100, 0));
+        GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, -10, 0));
+        floorBar.SetActive(true);
+
+		void uvIslandSolver(int[] triangles, UnityEngine.Vector3[] vertices)
+		{
+			int[] parent = new int[vertices.Length];
+			float[] minX = new float[vertices.Length];
+			float[] minY = new float[vertices.Length];
+			float[] maxX = new float[vertices.Length];
+			float[] maxY = new float[vertices.Length];
+
+			int findAndUpdate(int index)
+			{
+				Stack<int> stack = new Stack<int>();
+				while (parent[index] != index)
+				{
+					stack.Push(index);
+					index = parent[index];
+				}
+				while (stack.Count > 0)
+				{
+					int cur = stack.Pop();
+					parent[cur] = index;
+				}
+				return index;
+			}
+
+			for (int i = 0; i < vertices.Length; i++)
+			{
+				parent[i] = i;
+				var vertex = vertices[i];
+				minX[i] = vertex.x;
+				maxX[i] = vertex.x;
+				minY[i] = vertex.y;
+				maxY[i] = vertex.y;
+			}
+
+			for (int i = 0; i < triangles.Length; i += 3)
+			{
+				var parentIndex = findAndUpdate(parent[triangles[i]]);
+				var _parentIndex1 = findAndUpdate(parent[triangles[i + 1]]);
+				var _parentIndex2 = findAndUpdate(parent[triangles[i + 2]]);
+
+                parent[_parentIndex1] = parentIndex;
+                parent[_parentIndex2] = parentIndex;
+
+                minX[parentIndex] = Math.Min(minX[parentIndex], minX[_parentIndex1]);
+				minX[parentIndex] = Math.Min(minX[parentIndex], minX[_parentIndex2]);
+
+				minY[parentIndex] = Math.Min(minY[parentIndex], minY[_parentIndex1]);
+				minY[parentIndex] = Math.Min(minY[parentIndex], minY[_parentIndex2]);
+
+				maxX[parentIndex] = Math.Max(maxX[parentIndex], maxX[_parentIndex1]);
+				maxX[parentIndex] = Math.Max(maxX[parentIndex], maxX[_parentIndex2]);
+
+                maxY[parentIndex] = Math.Max(maxY[parentIndex], maxY[_parentIndex1]);
+                maxY[parentIndex] = Math.Max(maxY[parentIndex], maxY[_parentIndex2]);
+            }
+			List<List<int>> islands = new List<List<int>>();
+			Dictionary<int,float> offsets = new Dictionary<int,float>();
+			
+			for(int i = 0;i < vertices.Length; i ++ )
+			{
+				int parentIndex = findAndUpdate(parent[i]);
+				if (offsets.TryGetValue(parentIndex, out float offset))
+				{
+					var _v = vertices[i];
+					vertices[i] = new UnityEngine.Vector3(_v.x, _v.y, offset);
+					continue;
+				}
+				offset = 0f;
+				bool flag = false;
+
+                for (int layer = 0; layer < islands.Count; layer++)
+				{
+					flag = true;
+                    var layerInfo = islands[layer];
+                    for (int j = 0; j < islands[layer].Count; j++)
+					{
+                        int _parentIndex = layerInfo[j];
+						if (!(minX[_parentIndex] >= maxX[parentIndex] || maxX[_parentIndex] <= minX[parentIndex] || minY[_parentIndex] >= maxY[parentIndex] || maxY[_parentIndex] <= minY[parentIndex]))
+						{
+							flag = false;
+							break;
+						}
+					}
+                    if (flag)
+                    {
+                        offsets.Add(parentIndex, offset);
+                        layerInfo.Add(parentIndex);
+                        var _v = vertices[i];
+                        vertices[i] = new UnityEngine.Vector3(_v.x, _v.y, offset);
+                        break;
+                    }
+                    offset -= 0.001f;
+                }
+				if (!flag)
+				{
+					offsets.Add(parentIndex, offset);
+					islands.Add(new List<int>() { parentIndex });
+				}
+			}
+		}
     }
 
     public void ChangeAnimations()
@@ -2325,6 +2594,7 @@ internal class PmxBuilder
 		ExportChaFileCoordinateDataListToJson(chaFileCoordinateData, "KK_ChaFileCoordinateData.json");
 		ExportDataListToJson(editBoneInfo, "KK_EditBoneInfo.json");
 		ExportDataListToJson(finalBoneInfo.Values.ToList(), "KK_FinalBoneInfo.json");
+		ExportDataListToJson(uvAdjustments, "KK_UVAdjustments.json");
     }
 
 	public void OpenFolderInExplorer(string filename)
