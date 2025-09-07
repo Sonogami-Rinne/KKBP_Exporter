@@ -399,6 +399,7 @@ internal class PmxBuilder
 			{
 				var _tmp = (SkinnedMeshRenderer)smr;
                 _tmp.BakeMesh(mesh);
+				mesh.colors = _tmp.sharedMesh.colors;
 				probeUsage = _tmp.lightProbeUsage;
 				probeAnchor = _tmp.probeAnchor;
 				probeCastingMode = _tmp.shadowCastingMode;
@@ -486,6 +487,7 @@ internal class PmxBuilder
 			uvIslandSolver(triangles, verts);
 
             mesh.vertices = verts;
+			mesh.triangles = triangles;
             mesh.RecalculateBounds();
             mesh.RecalculateNormals();
 			mesh.RecalculateTangents();
@@ -601,68 +603,16 @@ internal class PmxBuilder
 					Thread lightThread;
 					Thread darkThread;
 
-                    if (failedShaderType2.ContainsKey(shaderName))
-                    {
-                        Console.WriteLine("Type 2 shader detected, changing shader");
-                        Shader shader = null;
-                        var targetName = failedShaderType2[shaderName];
-                        //Shader.Find() failed somehow
-                        foreach (var _ in Resources.FindObjectsOfTypeAll<Shader>())
-                        {
-                            if (_.name == targetName)
-                            {
-                                shader = _;
-                                break;
-                            }
-                        }
-                        if (shader == null)
-                        {
-                            Console.WriteLine("Shader not found" + failedShaderType2[shaderName]);
-                        }
-                        material.shader = shader;
-                        material.renderQueue = 2000;
-						shaderName = failedShaderType2[shaderName];
-                    }
+                    lightColor = render(lightRotation);
+                    lightThread = new Thread(() => shiftAndOverlay(lightColor, 2));
+                    lightThread.Start();
 
-                    if (failedShaderType1.Contains(shaderName))
-					{
-						Console.WriteLine("Type 1 shader detected");
-                        //I was shocked too when finding this.
-                        camera.transform.SetPosition(positionFront.x, positionFront.y, -positionFront.z);
-						camera.transform.LookAt(positionLookAt);
-						camera.transform.hasChanged = true;
-
-						lightColor = render(darkRotation);
-						lightThread = new Thread(() =>
-						 {
-							 reverseImage(lightColor);
-							 shiftAndOverlay(lightColor, 2);
-
-						 });
-						lightThread.Start();
-
-						darkColor = render(lightRotation);
-						darkThread = new Thread(() =>
-						 {
-							 reverseImage(darkColor);
-							 shiftAndOverlay(darkColor, 2);
-
-						 });
-						darkThread.Start();
-					}
-					else
-					{
-                        lightColor = render(lightRotation);
-                        lightThread = new Thread(() => shiftAndOverlay(lightColor, 2));
-                        lightThread.Start();
-
-                        darkColor = render(darkRotation);
-                        darkThread = new Thread(() => shiftAndOverlay(darkColor, 2));
-                        darkThread.Start();
-                    }
+                    darkColor = render(darkRotation);
+                    darkThread = new Thread(() => shiftAndOverlay(darkColor, 2));
+                    darkThread.Start();
 
 
-					lightThread.Join();
+                    lightThread.Join();
 					darkThread.Join();
 
 					saveTexture(lightColor, savePath + "/pre_light/" + matName + "_light.png");
@@ -694,47 +644,6 @@ internal class PmxBuilder
 						return data;
 					}
 
-					Color32[] renderDirectly(UnityEngine.Quaternion rotation)
-					{
-                        light.transform.rotation = rotation;
-                        GL.Flush();
-
-                        RenderTexture renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
-                        renderTexture.antiAliasing = 1;
-                        renderTexture.filterMode = FilterMode.Point;
-                        renderTexture.Create();
-						camera.targetTexture = renderTexture;                
-                        camera.Render();
-                        RenderTexture.active = renderTexture;
-                        Texture2D _ = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
-                        _.ReadPixels(new Rect(0, 0, texturewidth, textureheight), 0, 0);
-                        _.Apply();
-                        RenderTexture.active = null;
-                        var data = _.GetPixels32();
-                        Texture.Destroy(_);
-                        camera.targetTexture = null;
-                        renderTexture.Release();
-                        return data;
-                    }
-
-                    void reverseImage(Color32[] color)
-                    {
-						// Reverse image horizontally.
-						int offset = 0;
-                        for (int y = 0; y < textureheight; y++)
-                        {
-                            for (int x = 0; x < texturewidth / 2; x++)
-                            {
-                                int leftIndex = offset + x;
-                                int rightIndex = offset + (texturewidth - 1 - x);
-
-                                Color32 temp = color[leftIndex];
-                                color[leftIndex] = color[rightIndex];
-                                color[rightIndex] = temp;
-                            }
-                            offset += texturewidth;
-                        }
-                    }
                     void shiftAndOverlay(Color32[] color, int offset)
                     {
 						//To fix that color around the edge of UV island will be mixed with background color(transparent)
