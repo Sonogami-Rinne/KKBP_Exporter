@@ -181,6 +181,8 @@ internal class PmxBuilder
 
 	private List<UVAdjustment> uvAdjustments = new List<UVAdjustment>();
 
+	private Dictionary<string, List<string>> smrMaterialsCache = new Dictionary<string, List<string>>();
+
     public string BuildStart()
 	{
 		try
@@ -512,12 +514,8 @@ internal class PmxBuilder
                 if (meshRenders[i].sharedMaterials[j] == null) continue;
                 Material material = new Material(meshRenders[i].sharedMaterials[j]);
 
-                string matName = material.name;
-                matName = PmxBuilder.CleanUpMaterialName(matName);
-                matName = ((!ignoreList.Contains(matName, StringComparer.Ordinal) || !ignoreList.Contains(smr.name, StringComparer.Ordinal)) ? (matName + " " + PmxBuilder.GetAltInstanceID(smr.transform.parent.gameObject)) : ((!matName.Contains(EyeMatName)) ? matName : (matName + "_" + smr.name)));
-                matName = GetAltMaterialNameWithNoUpdate(matName);
-                //            matName = PmxBuilder.CleanUpMaterialName(matName);
-                //matName = ((!ignoreList.Contains(matName, StringComparer.Ordinal) || !ignoreList.Contains(smr.name, StringComparer.Ordinal)) ? (matName + " " + PmxBuilder.GetAltInstanceID(smr.transform.parent.gameObject)) : ((!matName.Contains(EyeMatName)) ? matName : (matName + "_" + smr.name)));
+				string matName = smrMaterialsCache[GetGameObjectPath(smr.gameObject)][j];
+                
                 materials.Add(matName);
                 int texturewidth;
                 int textureheight;
@@ -599,9 +597,6 @@ internal class PmxBuilder
 					{
 						material.SetFloat("_nip_specular", 0f);
 					}
-
-
-					var shaderName = material.shader.name;
 
 					Color32[] lightColor;
 					Color32[] darkColor;
@@ -881,7 +876,7 @@ internal class PmxBuilder
                         vertices[i] = new UnityEngine.Vector3(_v.x, _v.y, offset);
                         break;
                     }
-                    offset -= 0.001f;
+                    offset -= 0.0001f;
                 }
 				if (!flag)
 				{
@@ -1068,6 +1063,7 @@ internal class PmxBuilder
 				componentsInChildren[i].material = material;
 			}
 			SMRData sMRData = new SMRData(this, componentsInChildren[i]);
+			smrMaterialsCache.Add(sMRData.SMRPath, sMRData.SMRMaterialNames);
 			AddToSMRDataList(sMRData);
 			MaterialDataComplete matData = new MaterialDataComplete(this, componentsInChildren[i]);
 			AddToMaterialDataCompleteList(matData);
@@ -1501,7 +1497,8 @@ internal class PmxBuilder
             meshRenders.Add(meshRenderer);
 			Console.WriteLine("Exporting Acc: " + meshRenderer.name);
 			SMRData sMRData = new SMRData(this, meshRenderer);
-			AddToSMRDataList(sMRData);
+            smrMaterialsCache.Add(sMRData.SMRPath, sMRData.SMRMaterialNames);
+            AddToSMRDataList(sMRData);
 			MaterialDataComplete matData = new MaterialDataComplete(this, meshRenderer);
 			AddToMaterialDataCompleteList(matData);
 			if (currentRendererMaterialMapping.ContainsKey(meshRenderer))
@@ -2523,17 +2520,6 @@ internal class PmxBuilder
 		else
 		{
 			currentMaterialList.Add(materialName, value);
-		}
-		return materialName;
-	}
-	public string GetAltMaterialNameWithNoUpdate(string materialName)
-	{
-		if(currentMaterialList.TryGetValue(materialName, out var value))
-		{
-			if (!ignoreList.Contains(materialName))
-			{
-				return materialName + " " + value.ToString("00");
-			}
 		}
 		return materialName;
 	}
