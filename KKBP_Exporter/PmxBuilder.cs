@@ -723,7 +723,6 @@ internal class PmxBuilder
 					{
 						// To turn render result into a new texture that have the same size of original material.
 						// By spliting render result into blocks and merge them.
-						// If you want to use this function, the uv modify code in python plugin should be disabled.
 						if(horizontalBlockCount == 1 && verticalBlockCount == 1)
 						{
 							return color;
@@ -733,7 +732,7 @@ internal class PmxBuilder
                         int baseOffset = 0;// For color array
 						int basePos = 0;// For output array
 						int horizontalBlockOffset = texturewidth / horizontalBlockCount;
-						int verticalBlockOffset = textureheight / verticalBlockCount * texturewidth;
+						int verticalBlockOffset = (textureheight / verticalBlockCount - 1) * texturewidth;
 						for (int i = 0; i < textureheight / verticalBlockCount; i++)
 						{
 							for(int j = 0; j < horizontalBlockOffset; j++)
