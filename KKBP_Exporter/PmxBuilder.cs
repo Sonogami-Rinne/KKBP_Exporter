@@ -512,7 +512,7 @@ internal class PmxBuilder
 
                 string matName = material.name;
                 matName = PmxBuilder.CleanUpMaterialName(matName);
-                matName = ((!ignoreList.Contains(matName, StringComparer.Ordinal) || !ignoreList.Contains(smr.name, StringComparer.Ordinal)) ? (matName + " " + PmxBuilder.GetAltInstanceID(smr.transform.parent.gameObject)) : ((!matName.Contains(EyeMatName)) ? matName : (matName + "_" + smr.name)));
+				//matName = ((!ignoreList.Contains(matName, StringComparer.Ordinal) || !ignoreList.Contains(smr.name, StringComparer.Ordinal)) ? (matName + " " + PmxBuilder.GetAltInstanceID(smr.transform.parent.gameObject)) : ((!matName.Contains(EyeMatName)) ? matName : (matName + "_" + smr.name)));
 				materials.Add(matName);
                 int texturewidth;
                 int textureheight;
@@ -690,7 +690,28 @@ internal class PmxBuilder
                     void saveTexture(Color32[] output, string savePath)
                     {
                         Texture2D result = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
-                        result.SetPixels32(output);
+                        if (System.IO.File.Exists(savePath))// If two skinnedmeshrenderers share a same material.
+                        {
+                            byte[] existingBytes = System.IO.File.ReadAllBytes(savePath);
+                            Texture2D existingTexture = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
+                            existingTexture.LoadImage(existingBytes);
+
+                            Color32[] existingPixels = existingTexture.GetPixels32();
+
+                            for (int i = 0; i < output.Length; i++)
+                            {
+                                if (output[i].a > 250)
+                                {
+                                    existingPixels[i] = output[i];
+                                }
+                            }
+
+                            result.SetPixels32(existingPixels);
+                        }
+                        else
+                        {
+                            result.SetPixels32(output);
+                        }
                         result.filterMode = FilterMode.Point;
                         result.wrapMode = TextureWrapMode.Clamp;
                         result.Apply();
