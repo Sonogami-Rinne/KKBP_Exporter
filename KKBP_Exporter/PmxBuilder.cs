@@ -395,6 +395,7 @@ internal class PmxBuilder
 			ShadowCastingMode probeCastingMode;
 			MaterialPropertyBlock materialPropertyBlock = new MaterialPropertyBlock();
 			bool receiveShadow;
+			int subMeshCount = mesh.subMeshCount;
 			if (smr.GetType().Name == "SkinnedMeshRenderer")
 			{
 				var _tmp = (SkinnedMeshRenderer)smr;
@@ -405,6 +406,7 @@ internal class PmxBuilder
 				probeCastingMode = _tmp.shadowCastingMode;
 				receiveShadow = _tmp.receiveShadows;
 				_tmp.GetPropertyBlock(materialPropertyBlock);
+
             }
 			else
 			{
@@ -505,15 +507,18 @@ internal class PmxBuilder
 			camera.transform.position = positionFront;
 			camera.transform.LookAt(positionLookAt);
 
-			for (int j = 0; j < meshRenders[i].materials.Length; j++)
+			for (int j = 0; j < Math.Min(smr.sharedMaterials.Length, subMeshCount); j++)
 			{
-                if (meshRenders[i].materials[j] == null) continue;
-                Material material = new Material(meshRenders[i].materials[j]);
+                if (meshRenders[i].sharedMaterials[j] == null) continue;
+                Material material = new Material(meshRenders[i].sharedMaterials[j]);
 
                 string matName = material.name;
                 matName = PmxBuilder.CleanUpMaterialName(matName);
-				//matName = ((!ignoreList.Contains(matName, StringComparer.Ordinal) || !ignoreList.Contains(smr.name, StringComparer.Ordinal)) ? (matName + " " + PmxBuilder.GetAltInstanceID(smr.transform.parent.gameObject)) : ((!matName.Contains(EyeMatName)) ? matName : (matName + "_" + smr.name)));
-				materials.Add(matName);
+                matName = ((!ignoreList.Contains(matName, StringComparer.Ordinal) || !ignoreList.Contains(smr.name, StringComparer.Ordinal)) ? (matName + " " + PmxBuilder.GetAltInstanceID(smr.transform.parent.gameObject)) : ((!matName.Contains(EyeMatName)) ? matName : (matName + "_" + smr.name)));
+                matName = GetAltMaterialNameWithNoUpdate(matName);
+                //            matName = PmxBuilder.CleanUpMaterialName(matName);
+                //matName = ((!ignoreList.Contains(matName, StringComparer.Ordinal) || !ignoreList.Contains(smr.name, StringComparer.Ordinal)) ? (matName + " " + PmxBuilder.GetAltInstanceID(smr.transform.parent.gameObject)) : ((!matName.Contains(EyeMatName)) ? matName : (matName + "_" + smr.name)));
+                materials.Add(matName);
                 int texturewidth;
                 int textureheight;
                 try
@@ -603,22 +608,22 @@ internal class PmxBuilder
 					Thread lightThread;
 					Thread darkThread;
 
-                    lightColor = render(lightRotation);
+                    lightColor = render(lightRotation, j);
                     lightThread = new Thread(() => shiftAndOverlay(lightColor, 2));
                     lightThread.Start();
 
-                    darkColor = render(darkRotation);
+                    darkColor = render(darkRotation, j);
                     darkThread = new Thread(() => shiftAndOverlay(darkColor, 2));
                     darkThread.Start();
 
-
+					
                     lightThread.Join();
 					darkThread.Join();
 
-					saveTexture(lightColor, savePath + "/pre_light/" + matName + "_light.png");
-					saveTexture(darkColor, savePath + "/pre_dark/" + matName + "_dark.png");
+					saveTexture(lightColor, texturewidth, textureheight, savePath + "/pre_light/" + matName + "_light.png");
+					saveTexture(darkColor, texturewidth, textureheight, savePath + "/pre_dark/" + matName + "_dark.png");
 
-                    Color32[] render(UnityEngine.Quaternion rotation)
+                    Color32[] render(UnityEngine.Quaternion rotation, int subMeshIndex)
 					{
 						light.transform.rotation = rotation;
 						GL.Flush();
@@ -629,7 +634,7 @@ internal class PmxBuilder
 						renderTexture.Create();
 						camera.targetTexture = renderTexture;
 						camera.backgroundColor = Color.clear;
-						Graphics.DrawMesh(mesh, Matrix4x4.identity, material, layer, camera, 0, materialPropertyBlock, probeCastingMode, receiveShadow, probeAnchor, probeUsage != LightProbeUsage.Off);
+						Graphics.DrawMesh(mesh, Matrix4x4.identity, material, layer, camera, subMeshIndex, materialPropertyBlock, probeCastingMode, receiveShadow, probeAnchor, probeUsage != LightProbeUsage.Off);
 						camera.Render();
 
 						RenderTexture.active = renderTexture;
@@ -687,7 +692,7 @@ internal class PmxBuilder
                         }
                     }
 
-                    void saveTexture(Color32[] output, string savePath)
+                    void saveTexture(Color32[] output, int texturewidth, int textureheight, string savePath)
                     {
                         Texture2D result = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
                         if (System.IO.File.Exists(savePath))// If two skinnedmeshrenderers share a same material.
@@ -718,7 +723,53 @@ internal class PmxBuilder
                         byte[] bytes = result.EncodeToPNG();
                         System.IO.File.WriteAllBytes(savePath, bytes);
                     }
-                }
+					
+					Color32[] splitAndMergeTextures(Color32[] color)
+					{
+						// To turn render result into a new texture that have the same size of original material.
+						// By spliting render result into blocks and merge them.
+						// If you want to use this function, the uv modify code in python plugin should be disabled.
+						if(horizontalBlockCount == 1 && verticalBlockCount == 1)
+						{
+							return color;
+						}
+
+                        Color32[] output = new Color32[color.Length / horizontalBlockCount / verticalBlockCount];
+                        int baseOffset = 0;// For color array
+						int basePos = 0;// For output array
+						int horizontalBlockOffset = texturewidth / horizontalBlockCount;
+						int verticalBlockOffset = textureheight / verticalBlockCount * texturewidth;
+						for (int i = 0; i < textureheight / verticalBlockCount; i++)
+						{
+							for(int j = 0; j < horizontalBlockOffset; j++)
+							{
+                                int curOffset = baseOffset + j;
+								bool flag = false;
+								for (int k = 0; k < verticalBlockCount; k++)
+								{
+									for (int l = 0; l < horizontalBlockCount; l++)
+									{
+										if (color[curOffset].a > 250)
+										{
+											output[basePos] = color[curOffset];
+											flag = true;
+											break;
+										}
+										curOffset += horizontalBlockOffset;
+									}
+									if (flag)
+									{
+										break;
+									}
+									curOffset += verticalBlockOffset;
+								}
+								++basePos; 
+							}
+							baseOffset += texturewidth;
+						}
+						return output;
+					}
+				}
 				catch(Exception ex)
 				{
 					Console.WriteLine(ex.Message);
@@ -2472,6 +2523,17 @@ internal class PmxBuilder
 		else
 		{
 			currentMaterialList.Add(materialName, value);
+		}
+		return materialName;
+	}
+	public string GetAltMaterialNameWithNoUpdate(string materialName)
+	{
+		if(currentMaterialList.TryGetValue(materialName, out var value))
+		{
+			if (!ignoreList.Contains(materialName))
+			{
+				return materialName + " " + value.ToString("00");
+			}
 		}
 		return materialName;
 	}
