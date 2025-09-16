@@ -20,7 +20,7 @@ using UnityEngine.Rendering;
 
 internal class PmxBuilder
 {
-	private class GagData
+    private class GagData
 	{
 		public string MainTex;
 
@@ -2164,7 +2164,53 @@ internal class PmxBuilder
 			ChaFileData item3 = new ChaFileData(list5[k].ToString(), value3);
 			chaFileCustomHairData.Add(item3);
 		}
-		CharacterInfoData item4 = new CharacterInfoData
+
+		List<BlendShapeinfo> blendShapeinfos = new();
+
+		int orPtn = characterControl.GetEyesPtn();
+		bool orSha = characterControl.GetEyesShaking();
+		bool orBli = characterControl.GetEyesShaking();
+		float orOpr = characterControl.eyesCtrl.openRate;
+		float orOpm = characterControl.GetEyesOpenMax();
+        var ptnNames = characterControl.lstCtrl.GetCategoryInfo(ChaListDefine.CategoryNo.cha_eyeset).Values.ToList();
+		
+		characterControl.ChangeEyesOpenMax(1);
+        characterControl.ChangeEyesShaking(false);
+        characterControl.ChangeEyesBlinkFlag(false);
+		characterControl.ChangeEyesPtn(1, false);
+
+
+        for (int j = 0; j < ptnNames.Count; j++)
+		{
+			BlendShapeinfo bld = new BlendShapeinfo(ptnNames[j].Name);
+			blendShapeinfos.Add(bld);
+            characterControl.ChangeEyesPtn(j, false);
+            characterControl.fbsCtrl.LateUpdate();
+            characterControl.eyesCtrl.CalculateBlendShape();
+
+			foreach (var _ in characterControl.eyesCtrl.FBSTarget)
+			{
+				var smr = _.GetSkinnedMeshRenderer();
+				for(int k = 0; k < smr.sharedMesh.blendShapeCount; k++)
+				{
+					float weight = smr.GetBlendShapeWeight(k);
+					if(weight > 0)
+					{
+                        bld.Add(smr.sharedMesh.GetBlendShapeName(k), weight);
+                    }					
+				}
+			}
+        }
+
+        characterControl.ChangeEyesPtn(orPtn);
+        characterControl.ChangeEyesShaking(orSha);
+        characterControl.ChangeEyesBlinkFlag(orBli);
+        characterControl.eyesCtrl.SetOpenRateForce(orOpr);
+        characterControl.ChangeEyesOpenMax(orOpm);
+        characterControl.fbsCtrl.LateUpdate();
+        characterControl.eyesCtrl.CalculateBlendShape();
+
+        CharacterInfoData item4 = new CharacterInfoData
 		{
 			Personality = characterControl.fileParam.personality,
 			VoiceRate = characterControl.fileParam.voiceRate,
@@ -2176,10 +2222,7 @@ internal class PmxBuilder
 			HlDownY = characterControl.fileFace.hlDownY,
 			ShapeInfoFace = characterControl.chaFile.custom.face.shapeValueFace.ToList(),
 			ShapeInfoBody = characterControl.chaFile.custom.body.shapeValueBody.ToList(),
-			eyeOpenMax = characterControl.eyesCtrl.correctOpenMax,
-			eyebrowOpenMax = characterControl.eyebrowCtrl.correctOpenMax,
-			mouthOpenMax = characterControl.mouthCtrl.correctOpenMax
-        };
+		};
 
 		UnityEngine.Vector2 _vecl = eyeMatControllerl._material.GetTextureOffset(eyeMatControllerl.texStates[0].texID);
 		UnityEngine.Vector2 _vecr = eyeMatControllerr._material.GetTextureOffset(eyeMatControllerr.texStates[0].texID);
@@ -2214,11 +2257,13 @@ internal class PmxBuilder
 		item4.highlightDownColor = new List<float>() { _color.r, _color.g, _color.b, _color.a };
 
         characterInfoData.Add(item4);
+
 		ExportDataListToJson(chaFileCustomFaceData, "KK_ChaFileCustomFace.json");
 		ExportDataListToJson(chaFileCustomBodyData, "KK_ChaFileCustomBody.json");
 		ExportDataListToJson(chaFileCustomHairData, "KK_ChaFileCustomHair.json");
 		ExportDataListToJson(characterInfoData, "KK_CharacterInfoData.json");
-	}
+		ExportDataListToJson(blendShapeinfos, "KK_BlendShapeInfo.json");
+}
 
 	public void CreateListInfoData()
 	{
