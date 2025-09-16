@@ -24,12 +24,6 @@ internal class CharacterInfoData
 
 	public List<float> ShapeInfoBody = new List<float>();
 
-	public float eyeOpenMax;
-
-	public float eyebrowOpenMax;
-
-	public float mouthOpenMax;
-
 	public List<float> pupilOffset;
 
 	public List<float> pupilScale;
