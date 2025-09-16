@@ -284,6 +284,7 @@ internal class PmxBuilder
         foreach (Transform component in componentsInChildren)
         {
 			component.SetLocalScale(1, 1, 1);
+			component.hasChanged = true;
         }
     }
 
@@ -1181,31 +1182,6 @@ internal class PmxBuilder
 
     private void ClearMorphs()
 	{
-		float correctOpenMax = (float)Math.Round(Singleton<ChaControl>.Instance.eyesCtrl.correctOpenMax * 100, 0);
-		float tmp = 100 - correctOpenMax;
-        Dictionary<string, float> eyeBlendShapeWeight = new Dictionary<string, float>()
-		{
-            {"eye_face.f00_def_cl", tmp},
-			{"eye_face.f00_def_op", correctOpenMax},
-			{"kuti_face.f00_def_cl", 100},
-			{"eye_nose.nl00_def_cl", tmp},
-			{"eye_nose.nl00_def_op", correctOpenMax},
-			{"kuti_nose.nl00_def_cl", 100},
-			{"eye_siroL.sL00_def_cl", tmp},
-			{"eye_siroL.sL00_def_op", correctOpenMax},
-			{"eye_siroR.sR00_def_cl", tmp},
-			{"eye_siroR.sR00_def_op", correctOpenMax},
-			{"eye_line_u.elu00_def_cl", tmp},
-			{"eye_line_u.elu00_def_op", correctOpenMax},
-			{"eye_line_l.ell00_def_cl", tmp},
-			{"eye_line_l.ell00_def_op", correctOpenMax},
-			{"eye_naL.naL00_def_cl", tmp},
-			{"eye_naL.naL00_def_op", correctOpenMax},
-			{"eye_naM.naM00_def_cl", tmp},
-			{"eye_naM.naM00_def_op", correctOpenMax},
-			{"eye_naS.naS00_def_cl", tmp},
-			{"eye_naS.naS00_def_op", correctOpenMax}
-        };
 		ChaControl instance = Singleton<ChaControl>.Instance;
 		FBSTargetInfo[] fBSTarget = instance.eyesCtrl.FBSTarget;
 		for (int i = 0; i < fBSTarget.Length; i++)
@@ -1214,15 +1190,8 @@ internal class PmxBuilder
 			int blendShapeCount = skinnedMeshRenderer.sharedMesh.blendShapeCount;
 			for (int j = 0; j < blendShapeCount; j++)
 			{
-				if (eyeBlendShapeWeight.TryGetValue(skinnedMeshRenderer.sharedMesh.GetBlendShapeName(j), out var blendShapeWeight))
-				{
-                    skinnedMeshRenderer.SetBlendShapeWeight(j, blendShapeWeight);
-                }
-				else
-				{
-                    skinnedMeshRenderer.SetBlendShapeWeight(j, 0f);
-                }
-			}
+                skinnedMeshRenderer.SetBlendShapeWeight(j, 0f);
+            }
 		}
 		fBSTarget = instance.mouthCtrl.FBSTarget;
 		for (int i = 0; i < fBSTarget.Length; i++)
@@ -2207,9 +2176,9 @@ internal class PmxBuilder
 			HlDownY = characterControl.fileFace.hlDownY,
 			ShapeInfoFace = characterControl.chaFile.custom.face.shapeValueFace.ToList(),
 			ShapeInfoBody = characterControl.chaFile.custom.body.shapeValueBody.ToList(),
-			eyeOpenMax = characterControl.eyesCtrl.OpenMax,
-			eyebrowOpenMax = characterControl.eyebrowCtrl.OpenMax,
-			mouthOpenMax = characterControl.mouthCtrl.OpenMax
+			eyeOpenMax = characterControl.eyesCtrl.correctOpenMax,
+			eyebrowOpenMax = characterControl.eyebrowCtrl.correctOpenMax,
+			mouthOpenMax = characterControl.mouthCtrl.correctOpenMax
         };
 
 		UnityEngine.Vector2 _vecl = eyeMatControllerl._material.GetTextureOffset(eyeMatControllerl.texStates[0].texID);
