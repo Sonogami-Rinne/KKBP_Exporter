@@ -333,15 +333,14 @@ internal class PmxBuilder
 
         GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, 10, 0));
 		GameObject floorBar = GameObject.Find("Floor bar indicator");
-		floorBar.SetActive(false);
+		if (floorBar != null)
+		{
+            floorBar.SetActive(false);
+        }
 		// Some wired things will happen if you move main camera far away from 0,0 and export.
 		// For sure, I think nobody will do this except me.
 		string[] ignoredSMRs = { "cf_O_gag_eye_00", "cf_O_gag_eye_01", "cf_O_gag_eye_02", "cf_O_namida_L", "cf_O_namida_M", "cf_O_namida_S", "Highlight_o_body_a_rend", "Highlight_cf_O_face_rend", "o_Mask" };
 		string[] failedShaderType1 = { "Shader Forge/main_hair_front" };
-		Dictionary<string, string> failedShaderType2 = new Dictionary<string, string>()
-		{
-			{"KKUTShair", "Shader Forge/main_hair" }
-		};
         // Use the main camera and light directly instead of create new one to refuse some wierd render bugs
         GameObject light = Light.FindObjectsOfType<Light>()[0].gameObject;// The scene has only one light.But I'm failed to get the light by its name
         Camera camera = Camera.main;
@@ -783,9 +782,12 @@ internal class PmxBuilder
             }
 		}
         GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, -10, 0));
-        floorBar.SetActive(true);
+        if (floorBar != null)
+        {
+            floorBar.SetActive(true);
+        }
 
-		void uvIslandSolver(int[] triangles, UnityEngine.Vector3[] vertices)
+        void uvIslandSolver(int[] triangles, UnityEngine.Vector3[] vertices)
 		{
 			int[] parent = new int[vertices.Length];
 			float[] minX = new float[vertices.Length];
