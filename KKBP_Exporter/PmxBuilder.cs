@@ -286,6 +286,7 @@ internal class PmxBuilder
 			component.SetLocalScale(1, 1, 1);
 			component.hasChanged = true;
         }
+        smrMaterialsCache.Clear();
     }
 
     public void CleanUp()
@@ -332,11 +333,16 @@ internal class PmxBuilder
 		// However, it seems to be impossible to happen, because this means the color will change if we simply adjust character's height.
 
         GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, 10, 0));
-		GameObject floorBar = GameObject.Find("Floor bar indicator");
-		if (floorBar != null)
+
+		List<GameObject> hiddenObjects = new List<GameObject>();
+		foreach (var i in GameObject.FindObjectsOfType<GameObject>())
 		{
-            floorBar.SetActive(false);
-        }
+			if (i.activeSelf && Math.Abs(i.transform.position.y) <= 3 && i.GetComponent<Renderer>() != null)
+			{
+				hiddenObjects.Add(i);
+				i.SetActive(false);
+			}
+		}
 		// Some wired things will happen if you move main camera far away from 0,0 and export.
 		// For sure, I think nobody will do this except me.
 		string[] ignoredSMRs = { "cf_O_gag_eye_00", "cf_O_gag_eye_01", "cf_O_gag_eye_02", "cf_O_namida_L", "cf_O_namida_M", "cf_O_namida_S", "Highlight_o_body_a_rend", "Highlight_cf_O_face_rend", "o_Mask" };
@@ -782,10 +788,11 @@ internal class PmxBuilder
             }
 		}
         GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, -10, 0));
-        if (floorBar != null)
-        {
-            floorBar.SetActive(true);
-        }
+        
+		foreach (var i in hiddenObjects)
+		{
+			i.SetActive(true);
+		}
 
         void uvIslandSolver(int[] triangles, UnityEngine.Vector3[] vertices)
 		{
@@ -1065,8 +1072,9 @@ internal class PmxBuilder
 				componentsInChildren[i].material = material;
 			}
 			SMRData sMRData = new SMRData(this, componentsInChildren[i]);
-			smrMaterialsCache.Add(sMRData.SMRPath, sMRData.SMRMaterialNames);
-			AddToSMRDataList(sMRData);
+			//smrMaterialsCache.TryAdd(sMRData.SMRPath, sMRData.SMRMaterialNames);
+			smrMaterialsCache[sMRData.SMRPath] = sMRData.SMRMaterialNames;
+            AddToSMRDataList(sMRData);
 			MaterialDataComplete matData = new MaterialDataComplete(this, componentsInChildren[i]);
 			AddToMaterialDataCompleteList(matData);
 			if (currentRendererMaterialMapping.ContainsKey(componentsInChildren[i]))
@@ -1467,7 +1475,8 @@ internal class PmxBuilder
             meshRenders.Add(meshRenderer);
 			Console.WriteLine("Exporting Acc: " + meshRenderer.name);
 			SMRData sMRData = new SMRData(this, meshRenderer);
-            smrMaterialsCache.Add(sMRData.SMRPath, sMRData.SMRMaterialNames);
+			//smrMaterialsCache.Add(sMRData.SMRPath, sMRData.SMRMaterialNames);
+			smrMaterialsCache[sMRData.SMRPath] = sMRData.SMRMaterialNames;
             AddToSMRDataList(sMRData);
 			MaterialDataComplete matData = new MaterialDataComplete(this, meshRenderer);
 			AddToMaterialDataCompleteList(matData);
