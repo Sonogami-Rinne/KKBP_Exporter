@@ -608,8 +608,8 @@ internal class PmxBuilder
                         int texturewidth = baseLength * horizontalBlockCount;
                         int textureheight = baseLength * verticalBlockCount;
 
-                        lightOverlay = render(lightRotation, 0, mesh, texturewidth, textureheight);
-                        darkOverlay = render(darkRotation, 0, mesh, texturewidth, textureheight);
+                        lightOverlay = render(lightRotation, j, mesh, texturewidth, textureheight);
+                        darkOverlay = render(darkRotation, j, mesh, texturewidth, textureheight);
 
                         lightOverlay = shrink(lightOverlay);
                         darkOverlay = shrink(darkOverlay);
@@ -632,8 +632,8 @@ internal class PmxBuilder
                     camera.transform.position = new UnityEngine.Vector3(0.5f, 0.5f, 1f);
                     camera.transform.LookAt(new UnityEngine.Vector3(0.5f, 0.5f, 0f));
 
-                    lightColor = render(lightRotation, j, square, baseLength, baseLength);
-                    darkColor = render(darkRotation, j, square, baseLength, baseLength);
+                    lightColor = render(lightRotation, 0, square, baseLength, baseLength);
+                    darkColor = render(darkRotation, 0, square, baseLength, baseLength);
 
                     if (hasOverTex || hasSpeclarHeight)
                     {
