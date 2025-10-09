@@ -419,6 +419,7 @@ internal class PmxBuilder
             ShadowCastingMode probeCastingMode;
             MaterialPropertyBlock materialPropertyBlock = new MaterialPropertyBlock();
             bool receiveShadow;
+            bool isFaceBody = false;
             
             if (smr.GetType().Name == "SkinnedMeshRenderer")
             {
@@ -431,6 +432,7 @@ internal class PmxBuilder
                 receiveShadow = _tmp.receiveShadows;
                 _tmp.GetPropertyBlock(materialPropertyBlock);
 
+                isFaceBody = smr.name == "o_body_a" || smr.name == "cf_O_face";
             }
             else
             {
@@ -524,7 +526,7 @@ internal class PmxBuilder
                 lightDarkMaterials.Add(matName);
                 try
                 {
-                    int baseLength = material.mainTexture != null ? Math.Max(material.mainTexture.width, material.mainTexture.height) : 2048;
+                    int baseLength = isFaceBody ? 4096 : material.mainTexture != null ? Math.Max(material.mainTexture.width, material.mainTexture.height) : 2048;
 
                     material.SetShaderPassEnabled("OUTLINE", false);
                     material.SetShaderPassEnabled("SHADOWCASTER", false);
