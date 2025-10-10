@@ -89,16 +89,17 @@ public class PmxExpoter : BaseUnityPlugin
 
                 if (GUI.Button(new Rect((float)Screen.width / 2f - num + horizontal_offset, 0, num * 2f, 60f), "Export Model for KKBP") && builder == null)
 				{
-					builder = new PmxBuilder
-					{
-						exportAll = exportConfig.exportAllVariations,
-						exportHitBoxes = exportConfig.exportHitBoxes,
-						exportWithEnabledShapekeys = exportConfig.exportWithEnabledShapekeys,
-						exportCurrentPose = exportConfig.exportCurrentPose,
-						exportLightDarkTexture = exportConfig.exportLightDarkTexture
-					};
-					StartCoroutine(StartBuild());
-				}
+					PmxBuilder.ExportToText();
+                    //builder = new PmxBuilder
+                    //{
+                    //	exportAll = exportConfig.exportAllVariations,
+                    //	exportHitBoxes = exportConfig.exportHitBoxes,
+                    //	exportWithEnabledShapekeys = exportConfig.exportWithEnabledShapekeys,
+                    //	exportCurrentPose = exportConfig.exportCurrentPose,
+                    //	exportLightDarkTexture = exportConfig.exportLightDarkTexture
+                    //};
+                    //StartCoroutine(StartBuild());
+                }
 			}
 		}
 	}

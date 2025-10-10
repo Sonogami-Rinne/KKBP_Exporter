@@ -100,6 +100,8 @@ internal class PmxBuilder
 
     public bool exportLightDarkTexture = false;
 
+    public bool exportToBinary = false;
+
     public static int minCoord;
 
     public static int maxCoord;
@@ -193,6 +195,129 @@ internal class PmxBuilder
             msg = msg + ex?.ToString() + "\n";
         }
         return msg;
+    }
+
+    public static void ExportToText()
+    {
+        GameObjectInfo.Reset();
+        MeshInfo.Reset();
+        StaticMeshRendererInfo.Reset();
+        SkinnedMeshRendererInfo.Reset();
+        CMaterialInfo.Reset();
+
+        //Create BaseSavePath
+        string characterName = Singleton<CustomBase>.Instance.chaCtrl.chaFile.parameter.fullname.Replace(" ", string.Empty);
+        characterName = string.Join("_", characterName.Split(Path.GetInvalidFileNameChars()));
+        string exportFolder = "Export_KK";
+        string baseSavePath = Path.Combine(Application.dataPath, $"../{exportFolder}");
+        Directory.CreateDirectory(baseSavePath);
+
+
+        ClearMorphs();
+
+        // ChangeAnimation
+        ChaControl characterControl = MakerAPI.GetCharacterControl();
+        CustomBase makerBase = MakerAPI.GetMakerBase();
+        CvsDrawCtrl cvsDrawCtrl = UnityEngine.Object.FindObjectOfType<CvsDrawCtrl>();
+        characterControl.ChangeEyesBlinkFlag(blink: false);
+        characterControl.ChangeLookEyesTarget(1, null, 0f);
+        characterControl.ChangeEyesPtn(21);
+        characterControl.ChangeEyesPtn(23);
+        characterControl.ChangeEyesPtn(27);
+        characterControl.ChangeEyesPtn(0);
+        characterControl.ReleaseHitObject();
+        characterControl.ChangeEyesPtn(21);
+        characterControl.ChangeEyesPtn(23);
+        characterControl.ChangeEyesPtn(32);
+        characterControl.ChangeEyesPtn(0);
+#if NET35
+        int index = makerBase.lstPose.FindIndex((Predicate<ExcelData.Param>)(list => list.list[4] == "tpose"));
+        cvsDrawCtrl.ChangeAnimationForce(index, 0.0f);
+#elif NET46
+		cvsDrawCtrl.ChangeAnimationForce(makerBase.lstPose.Length - 1, 0f);
+#endif
+
+        Dictionary<int, GameObjectInfo> bones = new Dictionary<int, GameObjectInfo>();
+        List<SkinnedMeshRendererInfo> skinnedMeshs = new List<SkinnedMeshRendererInfo>();
+        List<StaticMeshRendererInfo> staticMeshes = new List<StaticMeshRendererInfo>();
+        Dictionary<int, MeshInfo> meshes = new ();
+        Dictionary<int, CMaterialInfo> materials = new();
+
+        foreach (var i in GameObject.Find("BodyTop").GetComponentsInChildren<Transform>())
+        {
+            bones.Add(i.gameObject.GetInstanceID(), new GameObjectInfo(i.gameObject));
+        }
+        foreach(var i in bones.Values)
+        {
+            i.parent = bones[i.parent].id;
+        }
+
+
+        foreach (var i in GameObject.Find("BodyTop").transform.GetComponentsInChildren<SkinnedMeshRenderer>())
+        {
+            Mesh mesh = i.sharedMesh;
+            MeshInfo meshInfo;
+            if (!meshes.TryGetValue(mesh.GetInstanceID(), out meshInfo))
+            {
+                meshInfo = new MeshInfo(mesh);
+                meshes.Add(mesh.GetInstanceID(), meshInfo);
+            }
+            foreach(var j in i.sharedMaterials)
+            {
+                if (!materials.TryGetValue(j.GetInstanceID(), out _))
+                {
+                    materials.Add(j.GetInstanceID(), new CMaterialInfo(j));
+                }
+            }
+            skinnedMeshs.Add(new SkinnedMeshRendererInfo(i, meshInfo.id, bones[i.gameObject.GetInstanceID()].id, bones, materials));
+        }
+        foreach (var i in GameObject.Find("BodyTop").transform.GetComponentsInChildren<MeshRenderer>())
+        {
+            Mesh mesh = i.gameObject.GetComponent<MeshFilter>().sharedMesh;
+            MeshInfo meshInfo;
+            if (!meshes.TryGetValue(mesh.GetInstanceID(), out meshInfo))
+            {
+                meshInfo = new MeshInfo(mesh);
+                meshes.Add(mesh.GetInstanceID(), meshInfo);
+            }
+            foreach (var j in i.sharedMaterials)
+            {
+                if (!materials.TryGetValue(j.GetInstanceID(), out _))
+                {
+                    materials.Add(j.GetInstanceID(), new CMaterialInfo(j));
+                }
+            }
+            staticMeshes.Add(new StaticMeshRendererInfo(i, meshInfo.id, bones[i.gameObject.GetInstanceID()].id, materials));
+        }
+
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.AppendLine(bones.Count.ToString());
+        foreach(var i in bones.Values)
+        {
+            i.WriteToText(stringBuilder);
+        }
+        stringBuilder.AppendLine(meshes.Count.ToString());
+        foreach(var i in meshes.Values)
+        {
+            i.WriteToText(stringBuilder);
+        }
+        stringBuilder.AppendLine(materials.Count.ToString());
+        foreach (var i in materials.Values)
+        {
+            i.WriteToText(stringBuilder);
+        }
+        stringBuilder.AppendLine(staticMeshes.Count.ToString());
+        foreach(var i in staticMeshes)
+        {
+            i.WriteToText(stringBuilder);
+        }
+        stringBuilder.AppendLine(skinnedMeshs.Count.ToString());
+        foreach(var i in skinnedMeshs)
+        {
+            i.WriteToText(stringBuilder);
+        }
+        File.WriteAllText(baseSavePath + "\\" + characterName + ".kk", stringBuilder.ToString());
+
     }
 
     public IEnumerator BuildStart_OG()
@@ -1186,7 +1311,7 @@ internal class PmxBuilder
         return array;
     }
 
-    private void ClearMorphs()
+    private static void ClearMorphs()
     {
         ChaControl instance = Singleton<ChaControl>.Instance;
         FBSTargetInfo[] fBSTarget = instance.eyesCtrl.FBSTarget;
