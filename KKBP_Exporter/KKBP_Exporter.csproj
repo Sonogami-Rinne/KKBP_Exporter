@@ -17,6 +17,9 @@
     <None Remove="deps\**" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Remove="UnityEditorScript\KKImporter.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -59,4 +62,8 @@
 		<Private>False</Private>
 	</Reference>
     </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="UnityEditorScript\" />
+  </ItemGroup>
 </Project>
