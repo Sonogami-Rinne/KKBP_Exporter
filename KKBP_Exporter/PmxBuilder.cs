@@ -2444,7 +2444,10 @@ internal class PmxBuilder
         {
             sb.AppendLine('\"' + list[i] + "\",");
         }
-        sb.AppendLine('\"' + list[list.Count - 1] + "\"");
+        if (list.Count > 0)
+        {
+            sb.AppendLine('\"' + list[list.Count - 1] + "\"");
+        }
         sb.Append("]");
         File.WriteAllText(baseSavePath + fileName, sb.ToString());
     }
