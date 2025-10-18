@@ -17,7 +17,7 @@ internal class KKBPExporterConfig
 
 	public bool exportCurrentPose;
 
-	public bool exportLightDarkTexture;
+	public bool exportLightDarkTexture = true;
 
 	public string exporterVersion = PmxExpoter.Version;
 }
