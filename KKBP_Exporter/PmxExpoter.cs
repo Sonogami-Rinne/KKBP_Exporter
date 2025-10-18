@@ -22,7 +22,7 @@ public class PmxExpoter : BaseUnityPlugin
 
     private void Awake()
     {
-		//Default to true the first time the plugin is installed. Every other time will read from the config file located in /Koikatsu/bepinex/config/kkbp.kkbpexporter.cfg
+		//Default to false the first time the plugin is installed. Every other time will read from the config file located in /Koikatsu/bepinex/config/kkbp.kkbpexporter.cfg
         visibilityPref = Config.Bind("Visibility", "Show the KKBP exporter by default", false,
             "Show the KKBP exporter by default when entering the character maker");
     }
@@ -85,7 +85,7 @@ public class PmxExpoter : BaseUnityPlugin
 				exportConfig.exportWithPushups = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportWithPushups, "Enable Pushups");
 				exportConfig.exportHitBoxes = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportHitBoxes, "Export Hit Meshes");
                 exportConfig.exportCurrentPose = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportCurrentPose, "Freeze Current Pose");
-                exportConfig.exportLightDarkTexture = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportLightDarkTexture, "Export Light Dark Texture");
+                // exportConfig.exportLightDarkTexture = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportLightDarkTexture, "Export Light Dark Texture");
 
                 if (GUI.Button(new Rect((float)Screen.width / 2f - num + horizontal_offset, 0, num * 2f, 60f), "Export Model for KKBP") && builder == null)
 				{
@@ -95,7 +95,7 @@ public class PmxExpoter : BaseUnityPlugin
 						exportHitBoxes = exportConfig.exportHitBoxes,
 						exportWithEnabledShapekeys = exportConfig.exportWithEnabledShapekeys,
 						exportCurrentPose = exportConfig.exportCurrentPose,
-						exportLightDarkTexture = exportConfig.exportLightDarkTexture
+						exportLightDarkTexture = true //exportConfig.exportLightDarkTexture
 					};
 					StartCoroutine(StartBuild());
 				}
