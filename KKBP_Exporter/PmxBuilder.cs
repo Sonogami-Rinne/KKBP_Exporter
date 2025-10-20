@@ -456,65 +456,12 @@ internal class PmxBuilder
             int subMeshCount = mesh.subMeshCount;
             int layer = smr.gameObject.layer;// Do not forget to drawmesh in this layer
 
-            //Processing mesh is unnecessary if we do not use it.But I am too lazy.And this pluin run fast enough.
-            UnityEngine.Vector2[] uvs = mesh.uv;
-            if (uvs.Length == 0)
-            {
-                Console.WriteLine("This mesh do not have uv.Ignored");
-                continue;
-            }
             int horizontalBlockCount = 1;
             int verticalBlockCount = 1;
-            int xOffset;
-            int yOffset;
-            
-            UnityEngine.Vector3[] verts = new UnityEngine.Vector3[uvs.Length];
-            // Transform mesh into a surface according to its uv
-            float minX = float.PositiveInfinity;
-            float minY = float.PositiveInfinity;
-            float maxX = float.NegativeInfinity;
-            float maxY = float.NegativeInfinity;
-            for (int j = 0; j < uvs.Length; j++)
-            {
-                verts[j] = new UnityEngine.Vector3(-uvs[j].x, uvs[j].y, 0f);
-                minX = Mathf.Min(minX, uvs[j].x);
-                maxX = Mathf.Max(maxX, uvs[j].x);
-                minY = Mathf.Min(minY, uvs[j].y);
-                maxY = Mathf.Max(maxY, uvs[j].y);
-            }
+            UnityEngine.Vector3 positionLookAt = new UnityEngine.Vector3();
+            UnityEngine.Vector3 positionFront = new UnityEngine.Vector3();
+            bool modifiedMesh = false;
 
-            xOffset = ((int)Math.Floor(minX));
-            yOffset = ((int)Math.Floor(minY));
-            horizontalBlockCount = (int)Math.Ceiling(maxX) - xOffset;
-            verticalBlockCount = (int)Math.Ceiling(maxY) - yOffset;
-
-            // Correct triangle if its normal direction is not positive z
-            var triangles = mesh.triangles;
-            for (int j = 0; j < triangles.Length; j += 3)
-            {
-                var v0 = verts[triangles[j]];
-                var v1 = verts[triangles[j + 1]];
-                var v2 = verts[triangles[j + 2]];
-
-                if (UnityEngine.Vector3.Cross(v1 - v0, v2 - v0).z < 0)
-                {
-                    var tmp = triangles[j + 1];
-                    triangles[j + 1] = triangles[j + 2];
-                    triangles[j + 2] = tmp;
-                }
-            }
-
-            uvIslandSolver(triangles, verts);
-
-            mesh.vertices = verts;
-            mesh.triangles = triangles;
-            mesh.RecalculateBounds();
-            mesh.RecalculateNormals();
-            mesh.RecalculateTangents();
-
-            var positionFront = new UnityEngine.Vector3(-xOffset - horizontalBlockCount / 2.0f, yOffset + verticalBlockCount / 2.0f, 10f);
-            var positionLookAt = new UnityEngine.Vector3(positionFront.x, positionFront.y, 0f);
-            
 
             for (int j = 0; j < Math.Min(smr.sharedMaterials.Length, subMeshCount); j++)
             {
@@ -535,22 +482,6 @@ internal class PmxBuilder
                     {
                         material.SetTexture("_AlphaMask", null);
                     }
-                    //if (material.HasProperty("_alpha_a"))
-                    //{
-                    //    alphaMaskAStage.Add((int)material.GetFloat("_alpha_a"));
-                    //}
-                    //else
-                    //{
-                    //    alphaMaskAStage.Add(-1);
-                    //}
-                    //if (material.HasProperty("_alpha_b"))
-                    //{
-                    //    alphaMaskBStage.Add((int)material.GetFloat("_alpha_b"));
-                    //}
-                    //else
-                    //{
-                    //    alphaMaskBStage.Add(-1);
-                    //}
 
                     if (material.HasProperty("_SpecularPower"))
                     {
@@ -603,6 +534,67 @@ internal class PmxBuilder
                     bool hasSpeclarHeight = material.HasProperty("_SpeclarHeight");
                     if (hasOverTex || hasSpeclarHeight)
                     {
+
+                        if (!modifiedMesh)
+                        {
+                            modifiedMesh = true;
+                            UnityEngine.Vector2[] uvs = mesh.uv;
+                            if (uvs.Length == 0)
+                            {
+                                Console.WriteLine("This mesh do not have uv.Ignored");
+                                continue;
+                            }
+                            int xOffset;
+                            int yOffset;
+
+                            UnityEngine.Vector3[] verts = new UnityEngine.Vector3[uvs.Length];
+                            // Transform mesh into a surface according to its uv
+                            float minX = float.PositiveInfinity;
+                            float minY = float.PositiveInfinity;
+                            float maxX = float.NegativeInfinity;
+                            float maxY = float.NegativeInfinity;
+                            for (int uv = 0; uv < uvs.Length; uv++)
+                            {
+                                verts[uv] = new UnityEngine.Vector3(-uvs[uv].x, uvs[uv].y, 0f);
+                                minX = Mathf.Min(minX, uvs[uv].x);
+                                maxX = Mathf.Max(maxX, uvs[uv].x);
+                                minY = Mathf.Min(minY, uvs[uv].y);
+                                maxY = Mathf.Max(maxY, uvs[uv].y);
+                            }
+
+                            xOffset = ((int)Math.Floor(minX));
+                            yOffset = ((int)Math.Floor(minY));
+                            horizontalBlockCount = (int)Math.Ceiling(maxX) - xOffset;
+                            verticalBlockCount = (int)Math.Ceiling(maxY) - yOffset;
+
+                            // Correct triangle if its normal direction is not positive z
+                            var triangles = mesh.triangles;
+                            for (int tri = 0; tri < triangles.Length; tri += 3)
+                            {
+                                var v0 = verts[triangles[tri]];
+                                var v1 = verts[triangles[tri + 1]];
+                                var v2 = verts[triangles[tri + 2]];
+
+                                if (UnityEngine.Vector3.Cross(v1 - v0, v2 - v0).z < 0)
+                                {
+                                    var tmp = triangles[tri + 1];
+                                    triangles[tri + 1] = triangles[tri + 2];
+                                    triangles[tri + 2] = tmp;
+                                }
+                            }
+
+                            uvIslandSolver(triangles, verts);
+
+                            mesh.vertices = verts;
+                            mesh.triangles = triangles;
+                            mesh.RecalculateBounds();
+                            mesh.RecalculateNormals();
+                            mesh.RecalculateTangents();
+
+                            positionFront = new UnityEngine.Vector3(-xOffset - horizontalBlockCount / 2.0f, yOffset + verticalBlockCount / 2.0f, 10f);
+                            positionLookAt = new UnityEngine.Vector3(positionFront.x, positionFront.y, 0f);
+                        }
+
                         camera.orthographicSize = verticalBlockCount / 2.0f;
                         camera.aspect = (float)horizontalBlockCount / verticalBlockCount;
                         camera.transform.position = positionFront;
