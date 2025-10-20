@@ -545,6 +545,7 @@ internal class PmxBuilder
                             }
                             else
                             {
+                                Mesh.Destroy(mesh);
                                 mesh = Mesh.Instantiate(originalMesh);
                             }
                             mesh.colors = originalMesh.colors;
