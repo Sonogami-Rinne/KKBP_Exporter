@@ -393,6 +393,8 @@ internal class PmxBuilder
             square.RecalculateTangents();
         }
 
+        Mesh mesh = new Mesh();
+
         for (int i = 0; i < meshRenders.Count; i++)
         {
             var smr = meshRenders[i];
@@ -413,19 +415,22 @@ internal class PmxBuilder
                 continue;
             }
             Console.WriteLine("Exporting textures for " + smr.name);
-            Mesh mesh = new Mesh();
+            
+            Mesh originalMesh;
             LightProbeUsage probeUsage;
             Transform probeAnchor;
             ShadowCastingMode probeCastingMode;
             MaterialPropertyBlock materialPropertyBlock = new MaterialPropertyBlock();
             bool receiveShadow;
             bool isFaceBody = false;
+            bool isSMR = false;
+            //mesh.Clear();
             
             if (smr.GetType().Name == "SkinnedMeshRenderer")
             {
+                isSMR = true;
                 var _tmp = (SkinnedMeshRenderer)smr;
-                _tmp.BakeMesh(mesh);
-                mesh.colors = _tmp.sharedMesh.colors;
+                originalMesh = _tmp.sharedMesh;
                 probeUsage = _tmp.lightProbeUsage;
                 probeAnchor = _tmp.probeAnchor;
                 probeCastingMode = _tmp.shadowCastingMode;
@@ -438,14 +443,7 @@ internal class PmxBuilder
             {
                 MeshFilter meshFilter = smr.gameObject.GetComponent<MeshFilter>();
                 var _tmp = (MeshRenderer)smr;
-                if (meshFilter.mesh != null)
-                {
-                    mesh = UnityEngine.Object.Instantiate(meshFilter.mesh);
-                }
-                else
-                {
-                    mesh = UnityEngine.Object.Instantiate(meshFilter.sharedMesh);
-                }
+                originalMesh = meshFilter.sharedMesh;
                 probeUsage = _tmp.lightProbeUsage;
                 probeAnchor = _tmp.probeAnchor;
                 probeCastingMode = _tmp.shadowCastingMode;
@@ -453,7 +451,7 @@ internal class PmxBuilder
                 _tmp.GetPropertyBlock(materialPropertyBlock);
 
             }
-            int subMeshCount = mesh.subMeshCount;
+            int subMeshCount = originalMesh.subMeshCount;
             int layer = smr.gameObject.layer;// Do not forget to drawmesh in this layer
 
             int horizontalBlockCount = 1;
@@ -529,6 +527,8 @@ internal class PmxBuilder
                     Color32[] darkColor;
                     Color32[] lightOverlay = new Color32[0];
                     Color32[] darkOverlay = new Color32[0];
+                    Texture2D image = new Texture2D(baseLength, baseLength, TextureFormat.ARGB32, false);
+                    //Texture2D darkTexture = new Texture2D(baseLength, baseLength, TextureFormat.ARGB32, false);
 
                     bool hasOverTex = material.HasProperty("_overtex1") && material.GetTexture("_overtex1") != null || material.HasProperty("_overtex2") && material.GetTexture("_overtex2") != null || material.HasProperty("_overtex3") && material.GetTexture("_overtex3") != null;
                     bool hasSpeclarHeight = material.HasProperty("_SpeclarHeight");
@@ -538,6 +538,17 @@ internal class PmxBuilder
                         if (!modifiedMesh)
                         {
                             modifiedMesh = true;
+                            if (isSMR)
+                            {
+                                var _tmp = (SkinnedMeshRenderer)smr;
+                                _tmp.BakeMesh(mesh);
+                            }
+                            else
+                            {
+                                mesh = Mesh.Instantiate(originalMesh);
+                            }
+                            mesh.colors = originalMesh.colors;
+
                             UnityEngine.Vector2[] uvs = mesh.uv;
                             if (uvs.Length == 0)
                             {
@@ -602,8 +613,11 @@ internal class PmxBuilder
                         int texturewidth = baseLength * horizontalBlockCount;
                         int textureheight = baseLength * verticalBlockCount;
 
-                        lightOverlay = render(lightRotation, j, mesh, texturewidth, textureheight);
-                        darkOverlay = render(darkRotation, j, mesh, texturewidth, textureheight);
+                        Texture2D _overlay = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
+
+                        lightOverlay = render(lightRotation, j, mesh, texturewidth, textureheight, _overlay);
+                        darkOverlay = render(darkRotation, j, mesh, texturewidth, textureheight, _overlay);
+                        Texture2D.DestroyImmediate(_overlay);
 
                         lightOverlay = shrink(lightOverlay);
                         darkOverlay = shrink(darkOverlay);
@@ -626,8 +640,8 @@ internal class PmxBuilder
                     camera.transform.position = new UnityEngine.Vector3(0.5f, 0.5f, 1f);
                     camera.transform.LookAt(new UnityEngine.Vector3(0.5f, 0.5f, 0f));
 
-                    lightColor = render(lightRotation, 0, square, baseLength, baseLength);
-                    darkColor = render(darkRotation, 0, square, baseLength, baseLength);
+                    lightColor = render(lightRotation, 0, square, baseLength, baseLength, image);
+                    darkColor = render(darkRotation, 0, square, baseLength, baseLength, image);
 
                     if (hasOverTex || hasSpeclarHeight)
                     {
@@ -638,10 +652,12 @@ internal class PmxBuilder
                     saveTexture(lightColor, baseLength, baseLength, savePath + "/pre_light/" + matName + "_light.png");
                     saveTexture(darkColor, baseLength, baseLength, savePath + "/pre_dark/" + matName + "_dark.png");
 
-                    Color32[] render(UnityEngine.Quaternion rotation, int subMeshIndex, Mesh mesh, int texturewidth, int textureheight)
+                    Texture2D.DestroyImmediate(image);
+
+                    Color32[] render(UnityEngine.Quaternion rotation, int subMeshIndex, Mesh mesh, int texturewidth, int textureheight, Texture2D _)
                     {
                         light.transform.rotation = rotation;
-                        GL.Flush();
+                        //GL.Flush();
 
                         RenderTexture renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
                         renderTexture.antiAliasing = 1;
@@ -653,12 +669,11 @@ internal class PmxBuilder
                         camera.Render();
 
                         RenderTexture.active = renderTexture;
-                        Texture2D _ = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
+                        //Texture2D _ = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
                         _.ReadPixels(new Rect(0, 0, texturewidth, textureheight), 0, 0);
                         _.Apply();
                         RenderTexture.active = null;
                         var data = _.GetPixels32();
-                        Texture.Destroy(_);
                         camera.targetTexture = null;
                         renderTexture.Release();
                         return data;
@@ -666,7 +681,7 @@ internal class PmxBuilder
 
                     void saveTexture(Color32[] output, int texturewidth, int textureheight, string savePath)
                     {
-                        Texture2D result = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
+                        //Texture2D result = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
                         if (System.IO.File.Exists(savePath))// If two skinnedmeshrenderers share a same material.
                         {
                             byte[] existingBytes = System.IO.File.ReadAllBytes(savePath);
@@ -683,17 +698,19 @@ internal class PmxBuilder
                                 }
                             }
 
-                            result.SetPixels32(existingPixels);
+                            image.SetPixels32(existingPixels);
+                            Texture2D.DestroyImmediate(existingTexture);
                         }
                         else
                         {
-                            result.SetPixels32(output);
+                            image.SetPixels32(output);
                         }
-                        result.filterMode = FilterMode.Point;
-                        result.wrapMode = TextureWrapMode.Clamp;
-                        result.Apply();
-                        byte[] bytes = result.EncodeToPNG();
+                        image.filterMode = FilterMode.Point;
+                        image.wrapMode = TextureWrapMode.Clamp;
+                        image.Apply();
+                        byte[] bytes = image.EncodeToPNG();
                         System.IO.File.WriteAllBytes(savePath, bytes);
+                        //Texture2D.DestroyImmediate(result);
                     }
 
                     void blend(Color32[] color, Color32[] blend)
@@ -766,17 +783,16 @@ internal class PmxBuilder
                 {
                     if (material != null)
                     {
-                        Material.Destroy(material);
+                        Material.DestroyImmediate(material);
                     }
                 }
             }
-            if (mesh != null)
-            {
-                Mesh.Destroy(mesh);
-            }
         }
         GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, -10, 0));
-
+        if (mesh != null)
+        {
+            Mesh.Destroy(mesh);
+        }
         foreach (var i in hiddenObjects)
         {
             i.SetActive(true);
@@ -1044,6 +1060,7 @@ internal class PmxBuilder
             "o_hit_kneeBR", "o_hit_kneeL", "o_hit_kneeR", "o_hit_kokan", "o_hit_legBL", "o_hit_legBR", "o_hit_legL", "o_hit_legR", "o_hit_mune", "o_hit_muneB",
             "o_hit_siriL", "o_hit_siriR", "cf_O_face_atari"
         };
+        Mesh mesh = new Mesh();
         SkinnedMeshRenderer[] componentsInChildren = GameObject.Find("BodyTop").transform.GetComponentsInChildren<SkinnedMeshRenderer>(includeInactive: true);
         for (int i = 0; i < componentsInChildren.Length; i++)
         {
@@ -1079,12 +1096,12 @@ internal class PmxBuilder
             BoneWeight[] boneWeights = componentsInChildren[i].sharedMesh.boneWeights;
             Transform transform = componentsInChildren[i].gameObject.transform;
             int bone = sbi(GetAltBoneName(transform), transform.GetInstanceID().ToString());
-            Mesh mesh = new Mesh();
+            //mesh.Clear();
             componentsInChildren[i].BakeMesh(mesh);
             Mesh mesh2 = mesh;
             UnityEngine.Vector2[] uv = mesh2.uv;
             List<UnityEngine.Vector2[]> list = new List<UnityEngine.Vector2[]> { mesh2.uv2, mesh2.uv3, mesh2.uv4 };
-            _ = mesh2.colors;
+            //_ = mesh2.colors;
             UnityEngine.Vector3[] normals = mesh2.normals;
             UnityEngine.Vector3[] vertices = mesh2.vertices;
             for (int j = 0; j < mesh2.subMeshCount; j++)
@@ -1141,7 +1158,10 @@ internal class PmxBuilder
                 pmxVertex.Deform = PmxVertex.DeformType.BDEF4;
                 pmxFile.VertexList.Add(pmxVertex);
             }
-            Mesh.Destroy(mesh2);
+        }
+        if (mesh != null)
+        {
+            Mesh.Destroy(mesh);
         }
     }
 
