@@ -659,11 +659,9 @@ internal class PmxBuilder
                     {
                         light.transform.rotation = rotation;
                         //GL.Flush();
-
-                        RenderTexture renderTexture = new RenderTexture(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
+                        RenderTexture renderTexture = RenderTexture.GetTemporary(texturewidth, textureheight, 24, RenderTextureFormat.ARGB32);
                         renderTexture.antiAliasing = 1;
                         renderTexture.filterMode = FilterMode.Point;
-                        renderTexture.Create();
                         camera.targetTexture = renderTexture;
                         camera.backgroundColor = Color.clear;
                         Graphics.DrawMesh(mesh, Matrix4x4.identity, material, layer, camera, subMeshIndex, materialPropertyBlock, probeCastingMode, receiveShadow, probeAnchor, probeUsage != LightProbeUsage.Off);
@@ -672,11 +670,11 @@ internal class PmxBuilder
                         RenderTexture.active = renderTexture;
                         //Texture2D _ = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
                         _.ReadPixels(new Rect(0, 0, texturewidth, textureheight), 0, 0);
-                        _.Apply();
+                        //_.Apply();
                         RenderTexture.active = null;
                         var data = _.GetPixels32();
                         camera.targetTexture = null;
-                        renderTexture.Release();
+                        RenderTexture.ReleaseTemporary(renderTexture);
                         return data;
                     }
 
@@ -706,9 +704,6 @@ internal class PmxBuilder
                         {
                             image.SetPixels32(output);
                         }
-                        image.filterMode = FilterMode.Point;
-                        image.wrapMode = TextureWrapMode.Clamp;
-                        image.Apply();
                         byte[] bytes = image.EncodeToPNG();
                         System.IO.File.WriteAllBytes(savePath, bytes);
                         //Texture2D.DestroyImmediate(result);
