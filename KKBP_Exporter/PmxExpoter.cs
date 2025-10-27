@@ -177,12 +177,12 @@ public class PmxExpoter : BaseUnityPlugin
             }
 			else
 			{
-                Console.WriteLine("This model failed to export due to some errors");
+                Console.WriteLine("Failed to export due to some errors");
             }
         }
 		else
 		{
-			Console.WriteLine("This model failed to export due to some errors");
+			Console.WriteLine("Failed to export due to some errors");
 		}
 		builder.CleanUp();
         builder.OpenFolderInExplorer(builder.baseSavePath);
