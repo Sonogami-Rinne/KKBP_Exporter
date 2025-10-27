@@ -182,6 +182,8 @@ internal class PmxBuilder
 
     private Mesh square;
 
+    public bool catchException = false;
+
     public string BuildStart()
     {
         try
@@ -259,13 +261,18 @@ internal class PmxBuilder
                 GetCreateBodyMaterials();
             }
             CreatePmxHeader();
-            Save();
+            if (nowCoordinate != maxCoord)
+            {
+                Save();
+            }
             msg += "\n";
         }
         catch (Exception ex)
         {
+            Console.WriteLine(ex.Message);
             Console.WriteLine(ex.StackTrace);
             msg = msg + ex?.ToString() + "\n";
+            catchException = true;
         }
         yield return null;
     }
@@ -2603,24 +2610,35 @@ internal class PmxBuilder
         pmxFile.ToFile(savePath + "model.pmx");
     }
 
-    public void ExportAllDataLists()
+    public bool ExportAllDataLists()
     {
-        ExportDataListToJson(characterSMRData, "KK_SMRData.json");
-        ExportMatDataCompListToJson(materialDataComplete, "KK_MaterialDataComplete.json");
-        ExportDataListToJson(materialData, "KK_MaterialData.json");
-        ExportDataListToJson(textureData, "KK_TextureData.json");
-        ExportDataListToJson(clothesData, "KK_ClothesData.json");
-        ExportDataListToJson(accessoryData, "KK_AccessoryData.json");
-        ExportDataListToJson(referenceInfoData, "KK_ReferenceInfoData.json");
-        ExportDataListToJson(dynamicBonesData, "KK_DynamicBoneData.json");
-        ExportDataListToJson(dynamicBoneCollidersData, "KK_DynamicBoneColliderData.json");
-        ExportDataListToJson(accessoryStateData, "KK_AccessoryStateData.json");
-        ExportDataListToJson(boneOffsetData, "KK_BoneOffsetData.json");
-        ExportDataListToJson(listInfoData, "KK_ListInfoData.json");
-        ExportChaFileCoordinateDataListToJson(chaFileCoordinateData, "KK_ChaFileCoordinateData.json");
-        ExportDataListToJson(editBoneInfo, "KK_EditBoneInfo.json");
-        ExportDataListToJson(finalBoneInfo.Values.ToList(), "KK_FinalBoneInfo.json");
-        ExportListStringToJSON(lightDarkMaterials, "KK_LightDarkMaterials.json");
+        try
+        {
+            ExportDataListToJson(characterSMRData, "KK_SMRData.json");
+            ExportMatDataCompListToJson(materialDataComplete, "KK_MaterialDataComplete.json");
+            ExportDataListToJson(materialData, "KK_MaterialData.json");
+            ExportDataListToJson(textureData, "KK_TextureData.json");
+            ExportDataListToJson(clothesData, "KK_ClothesData.json");
+            ExportDataListToJson(accessoryData, "KK_AccessoryData.json");
+            ExportDataListToJson(referenceInfoData, "KK_ReferenceInfoData.json");
+            ExportDataListToJson(dynamicBonesData, "KK_DynamicBoneData.json");
+            ExportDataListToJson(dynamicBoneCollidersData, "KK_DynamicBoneColliderData.json");
+            ExportDataListToJson(accessoryStateData, "KK_AccessoryStateData.json");
+            ExportDataListToJson(boneOffsetData, "KK_BoneOffsetData.json");
+            ExportDataListToJson(listInfoData, "KK_ListInfoData.json");
+            ExportChaFileCoordinateDataListToJson(chaFileCoordinateData, "KK_ChaFileCoordinateData.json");
+            ExportDataListToJson(editBoneInfo, "KK_EditBoneInfo.json");
+            ExportDataListToJson(finalBoneInfo.Values.ToList(), "KK_FinalBoneInfo.json");
+            ExportListStringToJSON(lightDarkMaterials, "KK_LightDarkMaterials.json");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("An error occurred when exporting datalist");
+            Console.WriteLine(ex.Message);
+            Console.WriteLine(ex.StackTrace);
+            return false;
+        }
+        return true;
     }
 
     public void OpenFolderInExplorer(string filename)

@@ -159,15 +159,34 @@ public class PmxExpoter : BaseUnityPlugin
 				pushupController.CurrentTopData.EnablePushup = topPushupBackup;
 				pushupController.RecalculateBody();
 			}
+			if (builder.catchException)
+			{
+				break;
+			}
 		}
-		if (exportConfig.exportCurrentPose)
+        
+        if (!builder.catchException)
 		{
-			chaControl.animBody.speed = 1f;
+            if (exportConfig.exportCurrentPose)
+            {
+                chaControl.animBody.speed = 1f;
+            }
+			if (builder.ExportAllDataLists())
+			{
+                builder.Save();
+            }
+			else
+			{
+                Console.WriteLine("This model failed to export due to some errors");
+            }
+        }
+		else
+		{
+			Console.WriteLine("This model failed to export due to some errors");
 		}
-		builder.ExportAllDataLists();
 		builder.CleanUp();
-		builder.OpenFolderInExplorer(builder.baseSavePath);
-		builder = null;
+        builder.OpenFolderInExplorer(builder.baseSavePath);
+        builder = null;
 		Console.WriteLine("KKBP Exporter finished in: " + (DateTime.Now - startDateTime).TotalSeconds + " seconds");
 	}
 }
