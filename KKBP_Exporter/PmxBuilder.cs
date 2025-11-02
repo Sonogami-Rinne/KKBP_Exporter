@@ -331,7 +331,9 @@ internal class PmxBuilder
         // If that occur, we should walk through all the triangle faces, collect data and then combine them into a entire one.
         // However, it seems to be impossible to happen, because this means the color will change if we simply adjust character's height.
 
-        GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, 10, 0));
+        GameObject bodyTop = GameObject.Find("BodyTop");
+        bodyTop.SetActive(false);
+        //GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, 10, 0));
 
         List<GameObject> hiddenObjects = new List<GameObject>();
         foreach (var i in GameObject.FindObjectsOfType<GameObject>())
@@ -784,7 +786,8 @@ internal class PmxBuilder
                 }
             }
         }
-        GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, -10, 0));
+        //GameObject.Find("BodyTop").transform.Translate(new UnityEngine.Vector3(0, -10, 0));
+        bodyTop.SetActive(true);
         if (mesh != null)
         {
             Mesh.Destroy(mesh);
