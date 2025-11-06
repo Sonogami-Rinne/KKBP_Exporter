@@ -299,6 +299,9 @@ internal class PmxBuilder
 
             if (exportLightDarkTexture)
             {
+#if NET46
+                Camera.main.gameObject.GetComponent<AmplifyColorEffect>().enabled = true;
+#endif
                 GameObject light = Light.FindObjectsOfType<Light>()[0].gameObject;
                 Camera camera = Camera.main;
 
@@ -355,6 +358,9 @@ internal class PmxBuilder
 
         if (recoverInfos.Count == 0)
         {
+#if NET46
+            Camera.main.gameObject.GetComponent<AmplifyColorEffect>().enabled = false;
+#endif
             recoverInfos.Add(light.transform.rotation);
             recoverInfos.Add(camera.orthographic);
             recoverInfos.Add(camera.aspect);
