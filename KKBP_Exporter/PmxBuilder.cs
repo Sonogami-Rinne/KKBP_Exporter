@@ -299,10 +299,12 @@ internal class PmxBuilder
 
             if (exportLightDarkTexture)
             {
-#if NET46
-                Camera.main.gameObject.GetComponent<AmplifyColorEffect>().enabled = true;
+                GameObject light;
+#if NET35
+                light = Light.FindObjectsOfType<Light>()[0].gameObject;
+#else
+                light = Light.FindObjectsOfType<Light>()[1].gameObject;
 #endif
-                GameObject light = Light.FindObjectsOfType<Light>()[0].gameObject;
                 Camera camera = Camera.main;
 
                 light.transform.rotation = (UnityEngine.Quaternion)recoverInfos[0];
@@ -351,7 +353,12 @@ internal class PmxBuilder
         // For sure, I think nobody will do this except me.
         string[] ignoredSMRs = { "cf_O_gag_eye_00", "cf_O_gag_eye_01", "cf_O_gag_eye_02", "cf_O_namida_L", "cf_O_namida_M", "cf_O_namida_S", "Highlight_o_body_a_rend", "Highlight_cf_O_face_rend", "o_Mask" };
         // Use the main camera and light directly instead of create new one to refuse some wierd render bugs
-        GameObject light = Light.FindObjectsOfType<Light>()[0].gameObject;// The scene has only one light.But I'm failed to get the light by its name
+        GameObject light;
+#if NET35
+        light = Light.FindObjectsOfType<Light>()[0].gameObject;
+#else
+        light = Light.FindObjectsOfType<Light>()[1].gameObject;
+#endif
         Camera camera = Camera.main;
         UnityEngine.Quaternion lightRotation = new UnityEngine.Quaternion(0, 1, 0, 0);
         UnityEngine.Quaternion darkRotation = new UnityEngine.Quaternion(0, 0, 0, -1);
@@ -359,7 +366,7 @@ internal class PmxBuilder
         if (recoverInfos.Count == 0)
         {
 #if NET46
-            Camera.main.gameObject.GetComponent<AmplifyColorEffect>().enabled = false;
+            Camera.main.gameObject.GetComponent<AmplifyColorEffect>().MaskTexture = null;
 #endif
             recoverInfos.Add(light.transform.rotation);
             recoverInfos.Add(camera.orthographic);
@@ -934,7 +941,7 @@ internal class PmxBuilder
             int index = makerBase.lstPose.FindIndex((Predicate<ExcelData.Param>)(list => list.list[4] == "tpose"));
             cvsDrawCtrl.ChangeAnimationForce(index, 0.0f);
 #elif NET46
-				cvsDrawCtrl.ChangeAnimationForce(makerBase.lstPose.Length - 1, 0f);
+			cvsDrawCtrl.ChangeAnimationForce(makerBase.lstPose.Length - 1, 0f);
 #endif
         }
         else
