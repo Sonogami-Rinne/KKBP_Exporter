@@ -1510,6 +1510,11 @@ internal class PmxBuilder
             }
             GameObject gameObject = componentsInChildren[i].gameObject;
             Mesh sharedMesh = componentsInChildren[i].sharedMesh;
+            if (!sharedMesh.isReadable)
+            {
+                Console.WriteLine("Unreadable mesh, skip");
+                continue;
+            }
             _ = sharedMesh.boneWeights;
             Transform transform = componentsInChildren[i].gameObject.transform;
             int bone = sbi(GetAltBoneName(transform), transform.GetInstanceID().ToString());
