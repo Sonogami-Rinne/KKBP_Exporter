@@ -547,7 +547,8 @@ internal class PmxBuilder
 
                     bool hasOverTex = material.HasProperty("_overtex1") && material.GetTexture("_overtex1") != null || material.HasProperty("_overtex2") && material.GetTexture("_overtex2") != null || material.HasProperty("_overtex3") && material.GetTexture("_overtex3") != null;
                     bool hasSpeclarHeight = material.HasProperty("_SpeclarHeight");
-                    if (hasOverTex || hasSpeclarHeight)
+                    bool isxukmi = material.shader.name.StartsWith("xukmi");
+                    if (hasOverTex || hasSpeclarHeight || isxukmi)
                     {
 
                         if (!modifiedMesh)
@@ -659,7 +660,7 @@ internal class PmxBuilder
                     lightColor = render(lightRotation, 0, square, baseLength, baseLength, image);
                     darkColor = render(darkRotation, 0, square, baseLength, baseLength, image);
 
-                    if (hasOverTex || hasSpeclarHeight)
+                    if (hasOverTex || hasSpeclarHeight || isxukmi)
                     {
                         blend(lightColor, lightOverlay);
                         blend(darkColor, darkOverlay);
