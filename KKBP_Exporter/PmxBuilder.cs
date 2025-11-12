@@ -476,9 +476,11 @@ internal class PmxBuilder
             bool modifiedMesh = false;
 
 
-            for (int j = 0; j < Math.Min(smr.sharedMaterials.Length, subMeshCount); j++)
+
+            for (int j = 0; j < smr.sharedMaterials.Length; j++)
             {
                 if (meshRenders[i].sharedMaterials[j] == null) continue;
+                int subMeshIndex = Math.Min(j, subMeshCount - 1);
                 Material material = new Material(meshRenders[i].sharedMaterials[j]);
 
                 string matName = smrMaterialsCache[GetGameObjectPath(smr.gameObject)][j];
@@ -632,8 +634,8 @@ internal class PmxBuilder
 
                         Texture2D _overlay = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
 
-                        lightOverlay = render(lightRotation, j, mesh, texturewidth, textureheight, _overlay);
-                        darkOverlay = render(darkRotation, j, mesh, texturewidth, textureheight, _overlay);
+                        lightOverlay = render(lightRotation, subMeshIndex, mesh, texturewidth, textureheight, _overlay);
+                        darkOverlay = render(darkRotation, subMeshIndex, mesh, texturewidth, textureheight, _overlay);
                         Texture2D.DestroyImmediate(_overlay);
 
                         lightOverlay = shrink(lightOverlay);
