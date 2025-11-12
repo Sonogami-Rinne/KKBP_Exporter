@@ -2227,10 +2227,10 @@ internal class PmxBuilder
         for (int j = 0; j < ptnNames.Count; j++)
         {
             BlendShapeinfo bld = new BlendShapeinfo(ptnNames[j].Name);
-            blendShapeinfos.Add(bld);
+            blendShapeinfos.Add(bld);            
             characterControl.ChangeEyesPtn(j, false);
+            characterControl.eyesCtrl.blendTimeCtrl.End();
             characterControl.fbsCtrl.LateUpdate();
-            characterControl.eyesCtrl.CalculateBlendShape();
 
             foreach (var _ in characterControl.eyesCtrl.FBSTarget)
             {
