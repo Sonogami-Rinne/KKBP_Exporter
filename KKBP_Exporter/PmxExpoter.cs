@@ -111,6 +111,7 @@ public class PmxExpoter : BaseUnityPlugin
 		PmxBuilder.pmxFile = null;
 		builder.CreateBaseSavePath();
 		builder.ChangeAnimations();
+		yield return new WaitForSeconds(.4f);
 		builder.CollectIgnoreList();
 		builder.CreateCharacterInfoData();
 		builder.ExportDataToJson(exportConfig, "KK_KKBPExporterConfig.json");
