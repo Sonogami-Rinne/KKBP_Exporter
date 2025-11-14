@@ -550,6 +550,7 @@ internal class PmxBuilder
                     bool hasOverTex = material.HasProperty("_overtex1") && material.GetTexture("_overtex1") != null || material.HasProperty("_overtex2") && material.GetTexture("_overtex2") != null || material.HasProperty("_overtex3") && material.GetTexture("_overtex3") != null;
                     bool hasSpeclarHeight = material.HasProperty("_SpeclarHeight");
                     bool isxukmi = material.shader.name.StartsWith("xukmi");
+                    bool ifHasBlendTexture = true;
                     if (hasOverTex || hasSpeclarHeight || isxukmi)
                     {
 
@@ -632,26 +633,36 @@ internal class PmxBuilder
                         int texturewidth = baseLength * horizontalBlockCount;
                         int textureheight = baseLength * verticalBlockCount;
 
-                        Texture2D _overlay = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
-
-                        lightOverlay = render(lightRotation, subMeshIndex, mesh, texturewidth, textureheight, _overlay);
-                        darkOverlay = render(darkRotation, subMeshIndex, mesh, texturewidth, textureheight, _overlay);
-                        Texture2D.DestroyImmediate(_overlay);
-
-                        lightOverlay = shrink(lightOverlay);
-                        darkOverlay = shrink(darkOverlay);
-
-                        if (material.HasProperty("_overtex1"))
+                        Texture2D _overlay;
+                        try
                         {
-                            material.SetTexture("_overtex1", null);
+                            _overlay = new Texture2D(texturewidth, textureheight, TextureFormat.ARGB32, false);
+                            lightOverlay = render(lightRotation, subMeshIndex, mesh, texturewidth, textureheight, _overlay);
+                            darkOverlay = render(darkRotation, subMeshIndex, mesh, texturewidth, textureheight, _overlay);
+                            Texture2D.DestroyImmediate(_overlay);
+
+                            lightOverlay = shrink(lightOverlay);
+                            darkOverlay = shrink(darkOverlay);
                         }
-                        if (material.HasProperty("_overtex2"))
+                        catch (Exception e)
                         {
-                            material.SetTexture("_overtex2", null);
+                            hasOverTex = false;
+                            Console.WriteLine("Failed to create overlay texture");
                         }
-                        if (material.HasProperty("_overtex3"))
+                        finally
                         {
-                            material.SetTexture("_overtex3", null);
+                            if (material.HasProperty("_overtex1"))
+                            {
+                                material.SetTexture("_overtex1", null);
+                            }
+                            if (material.HasProperty("_overtex2"))
+                            {
+                                material.SetTexture("_overtex2", null);
+                            }
+                            if (material.HasProperty("_overtex3"))
+                            {
+                                material.SetTexture("_overtex3", null);
+                            }
                         }
                     }
                     camera.orthographicSize = 0.5f;
@@ -662,7 +673,7 @@ internal class PmxBuilder
                     lightColor = render(lightRotation, 0, square, baseLength, baseLength, image);
                     darkColor = render(darkRotation, 0, square, baseLength, baseLength, image);
 
-                    if (hasOverTex || hasSpeclarHeight || isxukmi)
+                    if (hasOverTex && (hasOverTex || hasSpeclarHeight || isxukmi))
                     {
                         blend(lightColor, lightOverlay);
                         blend(darkColor, darkOverlay);
