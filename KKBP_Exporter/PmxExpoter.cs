@@ -68,28 +68,37 @@ public class PmxExpoter : BaseUnityPlugin
 		{
 			if (PmxExporterGUI.optionsEnabled)
 			{
-                float num = 80f;
-                float num2 = 90f;
-                float num3 = 50f;
-                float num4 = 80f;
-                float num5 = 70f;
-                float num6 = 170f;
-				float horizontal_offset = 60f * 4f;
-                //GUI.Box(new Rect((float)Screen.width / 2f - num2, 0f, num2 * 2f, 60f), "");
-                //openOptions = GUI.Toggle(new Rect((float)Screen.width / 2f - num3, 35f, num3 * 2f, 30f), openOptions, "Show Options");
-                GUI.Box(new Rect((float)Screen.width / 2f - num6 + horizontal_offset, num5, num6 * 2f, 90f), "");
-				exportConfig.exportAllOutfits = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 5f, num4 * 2f, 30f), exportConfig.exportAllOutfits, "Export All Outfits");
-				exportConfig.exportWithEnabledShapekeys= GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 5f, num4 * 2f, 30f), exportConfig.exportWithEnabledShapekeys, "Freeze Shapekeys");
-				exportConfig.exportAllVariations = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 35f, num4 * 2f, 30f), exportConfig.exportAllVariations, "Export Variations");
-				exportConfig.exportWithoutPhysics = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 35f, num4 * 2f, 30f), exportConfig.exportWithoutPhysics, "Export Without Physics");
-				//exportConfig.exportWithPushups = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportWithPushups, "Enable Pushups");
-				exportConfig.exportHitBoxes = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportHitBoxes, "Export Hit Meshes");
-                exportConfig.exportCurrentPose = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportCurrentPose, "Freeze Current Pose");
-                // exportConfig.exportLightDarkTexture = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportLightDarkTexture, "Export Light Dark Texture");
+                float box_y = 60f;
+                float box_x = (float)Screen.width / 2f + 60f;
+                float box_width = 300f;
+                float box_height = 90f;
+                float button_x = box_x + box_width / 4f;
+                float button_width = box_width / 2f;
+                float button_height = box_height / 2f;
 
-                if (GUI.Button(new Rect((float)Screen.width / 2f - num + horizontal_offset, 0, num * 2f, 60f), "Export Model for KKBP") && builder == null)
-				{
-					builder = new PmxBuilder
+                float col_a = box_x + 5f;
+                float col_b = box_x + box_width / 2 - 5f;
+                float row_a = box_y + 5f;
+                float row_b = box_y + box_height * 1 / 3 + 5f;
+                float row_c = box_y + box_height * 2 / 3 + 5f;
+                float toggle_width = box_width * 5 / 11;
+                float toggle_height = box_height / 3f;
+
+                GUI.Box(new Rect(box_x, box_y, box_width, box_height), "");
+                exportConfig.exportAllOutfits =				GUI.Toggle(new Rect(col_a, row_a, toggle_width, toggle_height), exportConfig.exportAllOutfits, "Export All Outfits");
+                exportConfig.exportAllVariations =			GUI.Toggle(new Rect(col_a, row_b, toggle_width, toggle_height), exportConfig.exportAllVariations, "Export Variations");
+                exportConfig.exportHitBoxes =				GUI.Toggle(new Rect(col_a, row_c, toggle_width, toggle_height - 5f), exportConfig.exportHitBoxes, "Export Hit Meshes");
+
+                exportConfig.exportCurrentPose =			GUI.Toggle(new Rect(col_b, row_a, toggle_width, toggle_height), exportConfig.exportCurrentPose, "Freeze Current Pose");
+                exportConfig.exportWithEnabledShapekeys =	GUI.Toggle(new Rect(col_b, row_b, toggle_width, toggle_height), exportConfig.exportWithEnabledShapekeys, "Freeze Shapekeys");
+                exportConfig.exportWithoutPhysics =			GUI.Toggle(new Rect(col_b, row_c, toggle_width, toggle_height - 5f), exportConfig.exportWithoutPhysics, "Disable Physics");
+
+                //exportConfig.exportWithPushups =			GUI.Toggle(new Rect(box_x, num5 + 65f, num4 * 2f, 30f), exportConfig.exportWithPushups, "Enable Pushups");
+                // exportConfig.exportLightDarkTexture =	GUI.Toggle(new Rect(box_x, num5 + 95f, num4 * 2f, 30f), exportConfig.exportLightDarkTexture, "Export Light Dark Texture");
+
+                if (GUI.Button(new Rect(button_x, 0, button_width, button_height), "Export Model for KKBP") && builder == null)
+                {
+                    builder = new PmxBuilder
 					{
 						exportAll = exportConfig.exportAllVariations,
 						exportHitBoxes = exportConfig.exportHitBoxes,
