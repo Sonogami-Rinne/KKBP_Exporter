@@ -646,7 +646,7 @@ internal class PmxBuilder
                         }
                         catch (Exception e)
                         {
-                            hasOverTex = false;
+                            ifHasBlendTexture = false;
                             Console.WriteLine("Failed to create overlay texture");
                         }
                         finally
@@ -673,7 +673,7 @@ internal class PmxBuilder
                     lightColor = render(lightRotation, 0, square, baseLength, baseLength, image);
                     darkColor = render(darkRotation, 0, square, baseLength, baseLength, image);
 
-                    if (hasOverTex && (hasOverTex || hasSpeclarHeight || isxukmi))
+                    if (ifHasBlendTexture && (hasOverTex || hasSpeclarHeight || isxukmi))
                     {
                         blend(lightColor, lightOverlay);
                         blend(darkColor, darkOverlay);
