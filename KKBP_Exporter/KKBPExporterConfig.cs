@@ -11,13 +11,9 @@ internal class KKBPExporterConfig
 
 	public bool exportWithoutPhysics;
 
-	public bool exportWithPushups;
-
 	public bool exportWithEnabledShapekeys;
 
 	public bool exportCurrentPose;
-
-	public bool exportLightDarkTexture = true;
 
 	public string exporterVersion = PmxExpoter.Version;
 }

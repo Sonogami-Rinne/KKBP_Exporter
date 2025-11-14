@@ -77,14 +77,14 @@ public class PmxExpoter : BaseUnityPlugin
 				float horizontal_offset = 60f * 4f;
                 //GUI.Box(new Rect((float)Screen.width / 2f - num2, 0f, num2 * 2f, 60f), "");
                 //openOptions = GUI.Toggle(new Rect((float)Screen.width / 2f - num3, 35f, num3 * 2f, 30f), openOptions, "Show Options");
-                GUI.Box(new Rect((float)Screen.width / 2f - num6 + horizontal_offset, num5, num6 * 2f, 120f), "");
+                GUI.Box(new Rect((float)Screen.width / 2f - num6 + horizontal_offset, num5, num6 * 2f, 90f), "");
 				exportConfig.exportAllOutfits = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 5f, num4 * 2f, 30f), exportConfig.exportAllOutfits, "Export All Outfits");
 				exportConfig.exportWithEnabledShapekeys= GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 5f, num4 * 2f, 30f), exportConfig.exportWithEnabledShapekeys, "Freeze Shapekeys");
 				exportConfig.exportAllVariations = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 35f, num4 * 2f, 30f), exportConfig.exportAllVariations, "Export Variations");
 				exportConfig.exportWithoutPhysics = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 35f, num4 * 2f, 30f), exportConfig.exportWithoutPhysics, "Export Without Physics");
-				exportConfig.exportWithPushups = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportWithPushups, "Enable Pushups");
-				exportConfig.exportHitBoxes = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportHitBoxes, "Export Hit Meshes");
-                exportConfig.exportCurrentPose = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportCurrentPose, "Freeze Current Pose");
+				//exportConfig.exportWithPushups = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportWithPushups, "Enable Pushups");
+				exportConfig.exportHitBoxes = GUI.Toggle(new Rect((float)Screen.width / 2f - num4 * 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportHitBoxes, "Export Hit Meshes");
+                exportConfig.exportCurrentPose = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 65f, num4 * 2f, 30f), exportConfig.exportCurrentPose, "Freeze Current Pose");
                 // exportConfig.exportLightDarkTexture = GUI.Toggle(new Rect((float)Screen.width / 2f + horizontal_offset, num5 + 95f, num4 * 2f, 30f), exportConfig.exportLightDarkTexture, "Export Light Dark Texture");
 
                 if (GUI.Button(new Rect((float)Screen.width / 2f - num + horizontal_offset, 0, num * 2f, 60f), "Export Model for KKBP") && builder == null)
@@ -132,15 +132,6 @@ public class PmxExpoter : BaseUnityPlugin
 			chaControl.SetClothesState(7, 1);
 			yield return new WaitForSeconds(0.1f);
 			chaControl.SetClothesState(7, 0);
-			if (!exportConfig.exportWithPushups && pushupController != null)
-			{
-				braPushupBackup = pushupController.CurrentBraData.EnablePushup;
-				topPushupBackup = pushupController.CurrentTopData.EnablePushup;
-				pushupController.CurrentBraData.EnablePushup = false;
-				pushupController.CurrentTopData.EnablePushup = false;
-				pushupController.RecalculateBody();
-				yield return new WaitForSeconds(2f);
-			}
 			if (!exportConfig.exportWithoutPhysics)
 			{
 				yield return new WaitForSeconds(2f);
@@ -154,12 +145,6 @@ public class PmxExpoter : BaseUnityPlugin
 			}
 			PmxBuilder.nowCoordinate = i;
 			yield return StartCoroutine(builder.BuildStart_OG());
-			if (!exportConfig.exportWithPushups && pushupController != null)
-			{
-				pushupController.CurrentBraData.EnablePushup = braPushupBackup;
-				pushupController.CurrentTopData.EnablePushup = topPushupBackup;
-				pushupController.RecalculateBody();
-			}
 		}
 		if (exportConfig.exportCurrentPose)
 		{
